@@ -1,0 +1,9 @@
+*.pyc
+*.egg-info
+dist/
+build/
+.cache
+webpack-build-config.json
+url_map.json
+node_modules/
+.tox/
