@@ -1,0 +1,105 @@
+{% from 'events/display/conference/_util.html' import format_event_date %}
+{% from 'events/contributions/management/_draft_mode_warning.html' import render_draft_mode_warning %}
+
+{% set MINIMUM_DISPLAY_DURATION = 20 %}
+
+{% macro show_entry(entry, subsession=False) %}
+  {% set colors = "color: " + entry.textColor|default('black') + " !important; background-color: " + entry.color|default('#f8f2e8') + " !important;" %}
+  {% if entry.entryType == "Contribution" and (entry.duration >= MINIMUM_DISPLAY_DURATION or subsession) %}
+    <a href="{{entry.url}}"
+       class="session"
+    {% if entry.description %}
+         title="{{entry.description|html_to_plaintext}}"
+    {% endif %}
+    {% if subsession %}
+         style="{{colors}}"
+    {% else %}
+         style="grid-row: room {{rooms[entry.room]|default(1)}}; grid-column: halfhour {{entry.halfhour_start}} / span {{entry.halfhour_span}}; {{colors}}"
+    {% endif %}
+         target="_blank">
+      <span class="title">{{entry.title}}</span>
+      {% if entry.presenters %}
+        <span class="authors">{{entry.presenters[0].name}}{% if entry.presenters|length > 1 %} {% trans %}et al{% endtrans %}{% endif %}</span>
+      {% endif %}
+      <span class="time">
+        <span class="starttime">{{entry.startDate.time[:5]}}</span><span class="endtime">–{{entry.endDate.time[:5]}}</span>
+      </span>
+    </a>
+  {% elif entry.entryType == "Break" %}
+    <div class="break"
+         {% if entry.description %}
+           title="{{entry.description|html_to_plaintext}}"
+         {% endif %}
+         style="grid-row: room 1 / span {{rooms|length}}; grid-column: halfhour {{entry.halfhour_start}} / span {{entry.halfhour_span}}; {{ colors }}">
+      <span class="title">
+        {{entry.title}}
+      </span>
+      <span class="location">
+        {{entry.room}}
+      </span>
+    </div>
+  {% elif entry.entryType == "Session" %}
+    <div href="{{entry.url}}"
+         target="_blank"
+         class="sessionblock"
+         style="grid-row: room {{rooms[entry.room]|default(1)}}; grid-column: halfhour {{entry.halfhour_start}} / span {{entry.halfhour_span}}; {{colors}}">
+        <span class="title">{{entry.slotTitle|default(entry.title)}}</span>
+        <div class="subsessions">
+          {% for skey, sentry in entry.entries.items() %}
+            {{show_entry(sentry, True) }}
+          {% endfor %}
+        </div>
+        <span class="time">{{entry.startDate.time[:5]}}–{{entry.endDate.time[:5]}}</span>
+    </div>
+  {% endif %}
+{% endmacro %}
+
+<div class="ngtimetable-header confheader" style="{{ conf_layout_params.bg_color_css }} {{ conf_layout_params.text_color_css }}">
+  <a class="icon-prev back" href="{{event.url}}" style="{{ conf_layout_params.text_color_css|default('color: black') }}">
+    {% if event.has_logo %}
+      <img src="{{ event.logo_url }}" alt="{{ event.title }}" border="0" class="conf-logo">
+    {% endif %}
+    <div class="details">
+      <div class="title">{{event.title}}</div>
+      <div class="date">{{format_event_date(event)}}</div>
+      <div class="place">{{ event.venue_name }}</div>
+    </div>
+  </a>
+</div>
+{% if not published %}
+  {{ render_draft_mode_warning(event) }}
+{% endif %}
+<div class="ngtimetable" style="--rooms: {{rooms|length}};">
+  <div class="rooms">
+    <div class="corner"></div>
+    {% for room in rooms.keys() %}
+      <div class="room">{{room}}</div>
+    {% endfor %}
+  </div>
+  <div class="schedule">
+  {% for date, daydata in timetable.items() %}
+    <a class="daymarker" id="{{daydata.weekday|lower}}">{{daydata.weekday}}, {{(daydata.date|format_date(format='long'))[:-6]}}</a>
+    <div class="sessions" style="--times: {{2 * (daydata.day_end - daydata.day_start + 1)}}">
+      {% for hour in range(daydata.day_start, daydata.day_end + 1) %}
+        <div class="timeslot">
+          <span class="weekday">{{daydata.weekday}}</span>
+          <span class="timestring">{{hour}}:00</span>
+        </div>
+      {% endfor %}
+      {% for key, entry in daydata.timetable.items() %}
+        {% if entry.entryType == "Contribution" or entry.entryType == "Break" %}
+          {{ show_entry(entry) }}
+        {% elif entry.entryType == "Session" %}
+          {% if entry.contribution_maxlen < 10 %}
+            {{ show_entry(entry) }}
+          {% else %}
+            {% for skey, sentry in entry.entries.items() %}
+              {{ show_entry(sentry) }}
+            {% endfor %}
+          {% endif %}
+        {% endif %}
+      {% endfor %}
+    </div>
+  {% endfor %}
+  </div>
+</div>

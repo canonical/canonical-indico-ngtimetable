@@ -1,0 +1,27 @@
+{
+  "devDependencies": {
+    "postcss": "^8.4.27",
+    "postcss-scss": "^4.0.6",
+    "stylelint": "^15.10.2",
+    "stylelint-config-standard": "^34.0.0",
+    "stylelint-scss": "^5.1.0"
+  },
+  "scripts": {
+    "lint": "tox"
+  },
+  "stylelint": {
+    "plugins": ["stylelint-scss"],
+    "extends": ["stylelint-config-standard"],
+    "rules": {
+      "at-rule-no-unknown": null,
+      "scss/at-rule-no-unknown": true,
+      "media-feature-range-notation": "prefix"
+    },
+    "overrides": [
+       {
+         "files": ["*.scss", "**/*.scss"],
+         "customSyntax": "postcss-scss"
+       }
+     ]
+  }
+}

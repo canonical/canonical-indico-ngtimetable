@@ -1,0 +1,6 @@
+graft indico_ngtimetable/client
+graft indico_ngtimetable/static
+graft indico_ngtimetable/templates
+graft indico_ngtimetable/translations
+
+global-exclude *.pyc __pycache__ .keep
