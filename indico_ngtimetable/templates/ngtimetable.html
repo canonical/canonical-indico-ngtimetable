@@ -1,36 +1,65 @@
 {% from 'events/display/conference/_util.html' import format_event_date %}
 {% from 'events/contributions/management/_draft_mode_warning.html' import render_draft_mode_warning %}
 
-{% set MINIMUM_DISPLAY_DURATION = 20 %}
+{% macro grid(halfhour, halfhour_span, room, room_span=1) %}
+  grid-row: room {{room}} / span {{room_span|default(1)}}; grid-column: halfhour {{halfhour}} / span {{halfhour_span|default(1)}};
+{% endmacro %}
 
-{% macro show_entry(entry, subsession=False) %}
-  {% set colors = "color: " + entry.textColor|default('black') + " !important; background-color: " + entry.color|default('#f8f2e8') + " !important;" %}
-  {% if entry.entryType == "Contribution" and (entry.duration >= MINIMUM_DISPLAY_DURATION or subsession) %}
+{% macro show_entry(entry, parent=None, halfhour_base=1) %}
+  {% set colors = "color: " + entry.textColor|default('black') +
+                  " !important; background-color: " +
+                  entry.color|default('#f8f2e8') + " !important;" %}
+  {% set room = rooms[entry.room]|default(1) %}
+  {% if parent %}
+    {% set room = 1 %}
+  {% endif %}
+
+  {% set halfhour = entry.halfhour_start|default(1) - halfhour_base + 1 %}
+
+  {% if entry.entryType == "Contribution" and not entry.subcontributions and entry.halfhour_span > 0 %}
     <a href="{{entry.url}}"
-       class="session"
+       class="contribution"
     {% if entry.description %}
          title="{{entry.description|html_to_plaintext}}"
     {% endif %}
-    {% if subsession %}
-         style="{{colors}}"
-    {% else %}
-         style="grid-row: room {{rooms[entry.room]|default(1)}}; grid-column: halfhour {{entry.halfhour_start}} / span {{entry.halfhour_span}}; {{colors}}"
-    {% endif %}
+         style="{{grid(halfhour, entry.halfhour_span, room)}} {{colors}}"
          target="_blank">
       <span class="title">{{entry.title}}</span>
       {% if entry.presenters %}
-        <span class="authors">{{entry.presenters[0].name}}{% if entry.presenters|length > 1 %} {% trans %}et al{% endtrans %}{% endif %}</span>
+        <span class="authors">
+          {{entry.presenters[0].name}}{% if entry.presenters|length > 1 %} {% trans %}et al{% endtrans %}{% endif %}
+        </span>
       {% endif %}
       <span class="time">
         <span class="starttime">{{entry.startDate.time[:5]}}</span><span class="endtime">–{{entry.endDate.time[:5]}}</span>
       </span>
+    </a>
+  {% elif entry.entryType == "Contribution" and entry.subcontributions and entry.halfhour_span > 0 %}
+    <div class="contribution hassubcontributions" style="{{grid(halfhour, entry.halfhour_span, room)}} {{colors}}">
+      <span class="title">{{entry.title}}</span>
+      <div class="subcontributions">
+        {% for subcontrib in entry.subcontributions %}
+          {{show_entry(subcontrib, entry)}}
+        {% endfor %}
+      </div>
+      <span class="time">{{entry.startDate.time[:5]}}–{{entry.endDate.time[:5]}}</span>
+    </div>
+  {% elif entry.entryType == "Subcontribution" %}
+    <a href="{{entry.url}}"
+       class="subcontribution"
+    {% if entry.description %}
+       title="{{entry.description|html_to_plaintext}}"
+    {% endif %}
+       target="_blank">
+      <span class="duration">{{entry.duration|round|int}}{% trans %}min{% endtrans %}</span>
+      <span class="title">{{entry.title}}</span>
     </a>
   {% elif entry.entryType == "Break" %}
     <div class="break"
          {% if entry.description %}
            title="{{entry.description|html_to_plaintext}}"
          {% endif %}
-         style="grid-row: room 1 / span {{rooms|length}}; grid-column: halfhour {{entry.halfhour_start}} / span {{entry.halfhour_span}}; {{ colors }}">
+           style="{{grid(halfhour, entry.halfhour_span, 1, rooms|length)}} {{ colors }}">
       <span class="title">
         {{entry.title}}
       </span>
@@ -41,15 +70,20 @@
   {% elif entry.entryType == "Session" %}
     <div href="{{entry.url}}"
          target="_blank"
-         class="sessionblock"
-         style="grid-row: room {{rooms[entry.room]|default(1)}}; grid-column: halfhour {{entry.halfhour_start}} / span {{entry.halfhour_span}}; {{colors}}">
-        <span class="title">{{entry.slotTitle|default(entry.title)}}</span>
-        <div class="subsessions">
-          {% for skey, sentry in entry.entries.items() %}
-            {{show_entry(sentry, True) }}
-          {% endfor %}
-        </div>
-        <span class="time">{{entry.startDate.time[:5]}}–{{entry.endDate.time[:5]}}</span>
+         class="session {% if entry.entries|length == 0 %}nocontributions{% endif %}"
+         style="{{grid(halfhour, entry.halfhour_span, room)}} --times: {{entry.halfhour_span}};">
+      <span
+         class="title"
+        {% if entry.description %}
+           title="{{entry.description|html_to_plaintext}}"
+        {% endif %}
+         style="{{colors}}"
+         >{{entry.slotTitle|default(entry.title)}}</span>
+      <div class="contributions">
+        {% for skey, sentry in entry.entries.items() %}
+          {{show_entry(sentry, entry, entry.halfhour_start) }}
+        {% endfor %}
+      </div>
     </div>
   {% endif %}
 {% endmacro %}
@@ -70,16 +104,18 @@
   {{ render_draft_mode_warning(event) }}
 {% endif %}
 <div class="ngtimetable" style="--rooms: {{rooms|length}};">
-  <div class="rooms">
-    <div class="corner"></div>
-    {% for room in rooms.keys() %}
-      <div class="room">{{room}}</div>
-    {% endfor %}
-  </div>
+  {% if rooms.keys()|length > 1 %}
+    <div class="rooms">
+      <div class="corner"></div>
+      {% for room in rooms.keys() %}
+        <div class="room">{{room}}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
   <div class="schedule">
   {% for date, daydata in timetable.items() %}
     <a class="daymarker" id="{{daydata.weekday|lower}}">{{daydata.weekday}}, {{(daydata.date|format_date(format='long'))[:-6]}}</a>
-    <div class="sessions" style="--times: {{2 * (daydata.day_end - daydata.day_start + 1)}}">
+    <div class="timetable" style="--times: {{2 * (daydata.day_end - daydata.day_start + 1)}}">
       {% for hour in range(daydata.day_start, daydata.day_end + 1) %}
         <div class="timeslot">
           <span class="weekday">{{daydata.weekday}}</span>
