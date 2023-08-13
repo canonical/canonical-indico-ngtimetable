@@ -17,23 +17,8 @@ class HTMLDescriptionField(Field):
 
 
 class NGTimetableSettingsForm(IndicoForm):
-    default_settings = {"timetable_use_track_colors": True, "description": None}
+    default_settings = {"timetable_use_track_colors": True}
 
-    description = HTMLDescriptionField(
-        "Rules",
-        html=_(
-            """
-        <p>This timetable is somewhat opinionated. It won't adapt to all situations. You should be aware of the following:</p>
-        <ul>
-          <li>Contributions should start at :00 or :30 of any given hour. They will be shown as multiples of :30 minutes to maximize space.</li>
-          <li>Contributions less than 20 minutes will not show, unless they are in a session block (e.g. Lightning Talks)</li>
-          <li>Each contribution needs a room assigned, your conference revolves around having sessions in a limited set of rooms.</li>
-          <li>Your conference goes at most 7 days. More is ok, but weekday names are used to identify days.</li>
-          <li>Make sure you set a room on all contributions and session blocks.</li>
-        </ul>
-    """
-        ),
-    )
     timetable_use_track_colors = BooleanField(
         _("Prefer Track Colors"),
         widget=SwitchWidget(),

@@ -3,6 +3,7 @@ from datetime import datetime
 
 from indico.modules.events.timetable.legacy import TimetableSerializer
 from indico.modules.events.timetable.models.entries import TimetableEntryType
+from indico.web.flask.util import url_for
 
 from . import _
 
@@ -13,6 +14,72 @@ class NGTimetableSerializer(TimetableSerializer):
         self.hour_padding = hour_padding
         self.use_track_colors = use_track_colors
         self._contrib_maxlen = 0
+        self._in_session_block = False
+
+    def _orig_serialize_timetable(
+        self, days=None, hide_weekends=False, strip_empty_days=False, **kwargs
+    ):
+        """
+        This is basically Indico's serialize_timetable, but I needed to add loading
+        subcontributions to the SQLalchemy loading strategy.
+        """
+        from indico.modules.events.timetable.models.entries import \
+            TimetableEntry
+        from indico.util.date_time import iterdays
+        from sqlalchemy.orm import defaultload
+
+        tzinfo = self.event.tzinfo if self.management else self.event.display_tzinfo
+        self.event.preload_all_acl_entries()
+        timetable = {}
+        for day in iterdays(
+            self.event.start_dt.astimezone(tzinfo),
+            self.event.end_dt.astimezone(tzinfo),
+            skip_weekends=hide_weekends,
+            day_whitelist=days,
+        ):
+            date_str = day.strftime("%Y%m%d")
+            timetable[date_str] = {}
+
+        contributions_strategy = defaultload("contribution")
+        contributions_strategy.subqueryload("person_links")
+        contributions_strategy.subqueryload("references")
+        contributions_strategy.subqueryload("subcontributions")
+        query_options = (
+            contributions_strategy,
+            defaultload("session_block").subqueryload("person_links"),
+        )
+        query = (
+            TimetableEntry.query.with_parent(self.event)
+            .options(*query_options)
+            .order_by(TimetableEntry.type != TimetableEntryType.SESSION_BLOCK)
+        )
+
+        for entry in query:
+            day = entry.start_dt.astimezone(tzinfo).date()
+            date_str = day.strftime("%Y%m%d")
+            if date_str not in timetable:
+                continue
+            if not entry.can_view(self.user):
+                continue
+            data = self.serialize_timetable_entry(entry, load_children=False)
+            key = self._get_entry_key(entry)
+            if entry.parent:
+                parent_code = f"s{entry.parent_id}"
+                timetable[date_str][parent_code]["entries"][key] = data
+            else:
+                if (
+                    entry.type == TimetableEntryType.SESSION_BLOCK
+                    and entry.start_dt.astimezone(tzinfo).date()
+                    != entry.end_dt.astimezone(tzinfo).date()
+                ):
+                    # If a session block lasts into another day we need to add it to that day, too
+                    timetable[
+                        entry.end_dt.astimezone(tzinfo).date().strftime("%Y%m%d")
+                    ][key] = data
+                timetable[date_str][key] = data
+        if strip_empty_days:
+            timetable = self._strip_empty_days(timetable)
+        return timetable
 
     def serialize_timetable(self, **kwargs):
         self.room_map = {}
@@ -25,7 +92,7 @@ class NGTimetableSerializer(TimetableSerializer):
             day_start = self._day_start_time
             self.hour_padding = 0
 
-        data = super().serialize_timetable(**kwargs)
+        data = self._orig_serialize_timetable(**kwargs)
 
         for key in data:
             keydate = datetime.strptime(key, "%Y%m%d").date()
@@ -54,7 +121,7 @@ class NGTimetableSerializer(TimetableSerializer):
         end_dt = end_dt.astimezone(tzinfo)
 
         halfhours = (
-            math.ceil((60 * start_dt.hour + start_dt.minute) / 30)
+            math.floor((60 * start_dt.hour + start_dt.minute) / 30)
             - 2 * self._day_start_time
             + 1
             + (2 * self.hour_padding)
@@ -75,6 +142,7 @@ class NGTimetableSerializer(TimetableSerializer):
 
     def serialize_session_block_entry(self, entry, load_children=True):
         self._contrib_maxlen = 0
+        self._in_session_block = True
         data = super().serialize_session_block_entry(entry, load_children)
         data.update(self._get_ng_entry_data(entry))
 
@@ -89,6 +157,7 @@ class NGTimetableSerializer(TimetableSerializer):
         )
 
         data["contribution_maxlen"] = self._contrib_maxlen
+        self._in_session_block = False
         return data
 
     def serialize_contribution_entry(self, entry):
@@ -96,7 +165,11 @@ class NGTimetableSerializer(TimetableSerializer):
         data.update(self._get_ng_entry_data(entry))
         self._contrib_maxlen = max(self._contrib_maxlen, data["duration"])
 
-        if entry.contribution.room_name not in self.room_map:
+        if self._in_session_block:
+            # Force room to be the session block room
+            data["room"] = ""
+            data["inheritRoom"] = True
+        elif entry.contribution.room_name not in self.room_map:
             self.room_map[entry.contribution.room_name] = len(self.room_map) + 1
 
         tzinfo = self.event.tzinfo if self.management else self.event.display_tzinfo
@@ -113,7 +186,21 @@ class NGTimetableSerializer(TimetableSerializer):
         ):
             data.update(self._get_color_data(entry.contribution.track.default_session))
 
+        data["subcontributions"] = [
+            self.serialize_subcontribution(x)
+            for x in entry.contribution.subcontributions
+        ]
+
         return data
+
+    def serialize_subcontribution(self, subcontribution):
+        return {
+            "entryType": "Subcontribution",
+            "duration": subcontribution.duration.total_seconds() / 60.0,
+            "title": subcontribution.title,
+            "description": subcontribution.description,
+            "url": url_for("contributions.display_contribution", subcontribution),
+        }
 
     def serialize_break_entry(self, entry, management=False):
         data = super().serialize_break_entry(entry, management)
