@@ -13,7 +13,6 @@ class NGTimetableSerializer(TimetableSerializer):
         super().__init__(*args, **kwargs)
         self.hour_padding = hour_padding
         self.use_track_colors = use_track_colors
-        self._contrib_maxlen = 0
         self._in_session_block = False
 
     def _orig_serialize_timetable(
@@ -145,7 +144,6 @@ class NGTimetableSerializer(TimetableSerializer):
         return data
 
     def serialize_session_block_entry(self, entry, load_children=True):
-        self._contrib_maxlen = 0
         self._in_session_block = True
         data = super().serialize_session_block_entry(entry, load_children)
         data.update(self._get_ng_entry_data(entry))
@@ -162,14 +160,12 @@ class NGTimetableSerializer(TimetableSerializer):
             self._lastsessionhour.get(daykey, 0), endhour
         )
 
-        data["contribution_maxlen"] = self._contrib_maxlen
         self._in_session_block = False
         return data
 
     def serialize_contribution_entry(self, entry):
         data = super().serialize_contribution_entry(entry)
         data.update(self._get_ng_entry_data(entry))
-        self._contrib_maxlen = max(self._contrib_maxlen, data["duration"])
 
         if self._in_session_block:
             # Force room to be the session block room
