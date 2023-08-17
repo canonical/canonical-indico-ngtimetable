@@ -10,12 +10,11 @@ const CONTRIBUTION_SELECTOR = ".timetable .contribution";
 let dragnode = null;
 let columnwidth = 0;
 let rowheight = 0;
-let dragCanvas = null;
 
 function dragStart(event) {
   event.dataTransfer.setData("text/plain", "hello");
   event.dataTransfer.effectAllowed = "move";
-  event.dataTransfer.setDragImage(dragCanvas, 0, 0);
+  event.dataTransfer.setDragImage(document.getElementById("dragcanvas"), 0, 0);
 
   event.target.style.opacity = 0.4;
 
@@ -165,9 +164,6 @@ function dragSetup() {
 
   columnwidth = Math.floor(document.querySelector(TIMESLOT_SELECTOR).offsetWidth / 2);
   rowheight = document.querySelector(ROOM_SELECTOR).offsetHeight;
-
-  dragCanvas = document.createElement("canvas");
-  document.body.appendChild(dragCanvas);
 }
 
 window.addEventListener("load", dragSetup, { once: true });
