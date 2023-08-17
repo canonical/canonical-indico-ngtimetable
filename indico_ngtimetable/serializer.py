@@ -23,8 +23,7 @@ class NGTimetableSerializer(TimetableSerializer):
         This is basically Indico's serialize_timetable, but I needed to add loading
         subcontributions to the SQLalchemy loading strategy.
         """
-        from indico.modules.events.timetable.models.entries import \
-            TimetableEntry
+        from indico.modules.events.timetable.models.entries import TimetableEntry
         from indico.util.date_time import iterdays
         from sqlalchemy.orm import defaultload
 
@@ -106,6 +105,11 @@ class NGTimetableSerializer(TimetableSerializer):
 
         return data
 
+    def _get_location_data(self, obj):
+        data = {}
+        data["location_data"] = obj.widget_location_data
+        return data
+
     def _get_ng_entry_data(self, entry):
         data = {}
 
@@ -147,7 +151,9 @@ class NGTimetableSerializer(TimetableSerializer):
         data.update(self._get_ng_entry_data(entry))
 
         if entry.session_block.room_name not in self.room_map:
-            self.room_map[entry.session_block.room_name] = len(self.room_map) + 1
+            room_data = entry.session_block.widget_location_data
+            room_data["index"] = len(self.room_map) + 1
+            self.room_map[entry.session_block.room_name] = room_data
 
         tzinfo = self.event.tzinfo if self.management else self.event.display_tzinfo
         daykey = entry.start_dt.astimezone(tzinfo).strftime("%Y%m%d")
@@ -167,10 +173,11 @@ class NGTimetableSerializer(TimetableSerializer):
 
         if self._in_session_block:
             # Force room to be the session block room
-            data["room"] = ""
-            data["inheritRoom"] = True
+            data["location_data"] = {"inheriting": True}
         elif entry.contribution.room_name not in self.room_map:
-            self.room_map[entry.contribution.room_name] = len(self.room_map) + 1
+            room_data = entry.contribution.widget_location_data
+            room_data["index"] = len(self.room_map) + 1
+            self.room_map[entry.contribution.room_name] = room_data
 
         tzinfo = self.event.tzinfo if self.management else self.event.display_tzinfo
         daykey = entry.start_dt.astimezone(tzinfo).strftime("%Y%m%d")
@@ -196,6 +203,7 @@ class NGTimetableSerializer(TimetableSerializer):
     def serialize_subcontribution(self, subcontribution):
         return {
             "entryType": "Subcontribution",
+            "subcontributionId": subcontribution.id,
             "duration": subcontribution.duration.total_seconds() / 60.0,
             "title": subcontribution.title,
             "description": subcontribution.description,

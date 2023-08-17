@@ -1,5 +1,6 @@
 {
     "entry": {
-	    "ngtimetable": "./ngtimetable.scss"
+	    "ngtimetable": "./ngtimetable.scss",
+	    "ngtimetablejs": "./ngtimetable.js"
     }
 }

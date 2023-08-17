@@ -1,7 +1,12 @@
 {
   "devDependencies": {
+    "eslint": "^8.47.0",
+    "eslint-config-indico": "^2.0.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-prettier": "^5.0.0",
     "postcss": "^8.4.27",
     "postcss-scss": "^4.0.6",
+    "prettier": "^3.0.2",
     "stylelint": "^15.10.2",
     "stylelint-config-standard": "^34.0.0",
     "stylelint-scss": "^5.1.0"
@@ -10,18 +15,45 @@
     "lint": "tox"
   },
   "stylelint": {
-    "plugins": ["stylelint-scss"],
-    "extends": ["stylelint-config-standard"],
+    "plugins": [
+      "stylelint-scss"
+    ],
+    "extends": [
+      "stylelint-config-standard"
+    ],
     "rules": {
       "at-rule-no-unknown": null,
       "scss/at-rule-no-unknown": true,
       "media-feature-range-notation": "prefix"
     },
     "overrides": [
-       {
-         "files": ["*.scss", "**/*.scss"],
-         "customSyntax": "postcss-scss"
-       }
-     ]
+      {
+        "files": [
+          "*.scss",
+          "**/*.scss"
+        ],
+        "customSyntax": "postcss-scss"
+      }
+    ]
+  },
+  "eslintConfig": {
+    "env": {
+      "browser": true,
+      "es2024": true
+    },
+		"parserOptions": {
+			"sourceType": "module"
+		},
+		"extends": [
+			"indico",
+			"indico/prettier"
+		],
+    "rules": {
+      "import/no-unresolved": ["error", { "ignore": ["^indico/"] }],
+      "max-len": ["error", { "code": 100 }]
+    }
+	},
+  "prettier": {
+    "printWidth": 100
   }
 }

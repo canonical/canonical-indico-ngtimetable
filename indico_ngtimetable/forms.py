@@ -1,19 +1,8 @@
 from indico.web.forms.base import IndicoForm
 from indico.web.forms.widgets import SwitchWidget
-from markupsafe import Markup
-from wtforms import Field
 from wtforms.fields import BooleanField
 
 from . import _
-
-
-class HTMLDescriptionField(Field):
-    def __init__(self, label="", validators=None, html="", **kwargs):
-        super(HTMLDescriptionField, self).__init__(label, validators, **kwargs)
-        self.html = html
-
-    def __call__(self, **kwargs):
-        return Markup(self.html)
 
 
 class NGTimetableSettingsForm(IndicoForm):
