@@ -185,17 +185,7 @@
         </div>
       {% endfor %}
       {% for key, entry in daydata.timetable.items() %}
-        {% if entry.entryType == "Contribution" or entry.entryType == "Break" %}
           {{ show_entry(entry) }}
-        {% elif entry.entryType == "Session" %}
-          {% if entry.contribution_maxlen < 10 %}
-            {{ show_entry(entry) }}
-          {% else %}
-            {% for skey, sentry in entry.entries.items() %}
-              {{ show_entry(sentry) }}
-            {% endfor %}
-          {% endif %}
-        {% endif %}
       {% endfor %}
     </div>
   {% endfor %}
