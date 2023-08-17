@@ -1,17 +1,24 @@
 {% from 'events/display/conference/_util.html' import format_event_date %}
 {% from 'events/contributions/management/_draft_mode_warning.html' import render_draft_mode_warning %}
 
-{% macro grid(halfhour, halfhour_span, room, room_span=1) %}
-  grid-row: room {{room}} / span {{room_span|default(1)}}; grid-column: halfhour {{halfhour}} / span {{halfhour_span|default(1)}};
+{% macro grid(halfhour, halfhour_span, room_index, room_span=1) %}
+  grid-row: room {{room_index|default(1)}} / span {{room_span|default(1)}}; grid-column: halfhour {{halfhour}} / span {{halfhour_span|default(1)}};
 {% endmacro %}
 
 {% macro show_entry(entry, parent=None, halfhour_base=1) %}
-  {% set colors = "color: " + entry.textColor|default('black') +
-                  " !important; background-color: " +
-                  entry.color|default('#f8f2e8') + " !important;" %}
-  {% set room = rooms[entry.room]|default(1) %}
+  {% if entry.location_data and entry.location_data.room_name in rooms %}
+    {% set room = rooms[entry.location_data.room_name] %}
+    {% set room_index = room.index %}
+  {% endif %}
   {% if parent %}
-    {% set room = 1 %}
+    {% set room_index = 1 %}
+    {% set colors = "color: " + parent.textColor|default('black') +
+                    " !important; background-color: " +
+                    parent.color|default('#f8f2e8') + " !important;" %}
+  {% else %}
+    {% set colors = "color: " + entry.textColor|default('black') +
+                    " !important; background-color: " +
+                    entry.color|default('#f8f2e8') + " !important;" %}
   {% endif %}
 
   {% set halfhour = entry.halfhour_start|default(1) - halfhour_base + 1 %}
@@ -19,10 +26,25 @@
   {% if entry.entryType == "Contribution" and not entry.subcontributions and entry.halfhour_span > 0 %}
     <a href="{{entry.url}}"
        class="contribution"
+       {% if management %}
+         draggable="true"
+         data-id="{{entry.scheduleEntryId}}"
+         data-color="{{entry.textColor|default('black')}}"
+         data-background-color="{{entry.color|default('#f8f2e8')}}"
+         data-halfhour-start="{{halfhour}}"
+         data-halfhour-span="{{entry.halfhour_span}}"
+         data-start-time="{{entry.startDate.time[:5]}}"
+         data-end-time="{{entry.endDate.time[:5]}}"
+         data-duration="{{entry.duration}}"
+         data-room-name="{{room.room_name}}"
+         data-room-id="{{room.room_id}}"
+       {% else %}
+         draggable="false"
+       {% endif %}
     {% if entry.description %}
          title="{{entry.description|html_to_plaintext}}"
     {% endif %}
-         style="{{grid(halfhour, entry.halfhour_span, room)}} {{colors}}"
+         style="{{grid(halfhour, entry.halfhour_span, room_index)}} {{colors}}"
          target="_blank">
       <span class="title">{{entry.title}}</span>
       {% if entry.presenters %}
@@ -31,21 +53,38 @@
         </span>
       {% endif %}
       <span class="time">
-        <span class="starttime">{{entry.startDate.time[:5]}}</span><span class="endtime">–{{entry.endDate.time[:5]}}</span>
+        <span class="starttime">{{entry.startDate.time[:5]}}</span>–<span class="endtime">{{entry.endDate.time[:5]}}</span>
       </span>
     </a>
   {% elif entry.entryType == "Contribution" and entry.subcontributions and entry.halfhour_span > 0 %}
-    <div class="contribution hassubcontributions" style="{{grid(halfhour, entry.halfhour_span, room)}} {{colors}}">
+    <div class="contribution hassubcontributions"
+         {% if management %}
+           draggable="true"
+           data-id="{{entry.scheduleEntryId}}"
+           data-color="{{entry.textColor|default('black')}}"
+           data-background-color="{{entry.color|default('#f8f2e8')}}"
+           data-halfhour-start="{{halfhour}}"
+           data-halfhour-span="{{entry.halfhour_span}}"
+           data-duration="{{entry.duration}}"
+           data-room-name="{{room.room_name}}"
+           data-room-id="{{room.room_id}}"
+           data-venue-id="{{room.venue_id}}"
+         {% endif %}
+         style="{{grid(halfhour, entry.halfhour_span, room_index)}} {{colors}}">
       <span class="title">{{entry.title}}</span>
       <div class="subcontributions">
         {% for subcontrib in entry.subcontributions %}
           {{show_entry(subcontrib, entry)}}
         {% endfor %}
       </div>
-      <span class="time">{{entry.startDate.time[:5]}}–{{entry.endDate.time[:5]}}</span>
+      <span class="time">
+        <span class="starttime">{{entry.startDate.time[:5]}}</span>–<span class="endtime">{{entry.endDate.time[:5]}}</span>
+      </span>
     </div>
   {% elif entry.entryType == "Subcontribution" %}
     <a href="{{entry.url}}"
+       data-id="{{entry.subcontributionId}}"
+       draggable="false"
        class="subcontribution"
     {% if entry.description %}
        title="{{entry.description|html_to_plaintext}}"
@@ -64,14 +103,24 @@
         {{entry.title}}
       </span>
       <span class="location">
-        {{entry.room}}
+        {{entry.location_data.room_name|default(None)}}
       </span>
     </div>
   {% elif entry.entryType == "Session" %}
     <div href="{{entry.url}}"
          target="_blank"
+         {% if management %}
+           data-id="{{entry.scheduleEntryId}}"
+           data-halfhour-start="{{halfhour}}"
+           data-halfhour-span="{{entry.halfhour_span}}"
+           data-color="{{entry.textColor|default('black')}}"
+           data-background-color="{{entry.color|default('#f8f2e8')}}"
+           data-room-name="{{room.room_name}}"
+           data-room-id="{{room.room_id}}"
+           data-venue-id="{{room.venue_id}}"
+         {% endif %}
          class="session {% if entry.entries|length == 0 %}nocontributions{% endif %}"
-         style="{{grid(halfhour, entry.halfhour_span, room)}} --times: {{entry.halfhour_span}};">
+         style="{{grid(halfhour, entry.halfhour_span, room_index)}} --times: {{entry.halfhour_span}};">
       <span
          class="title"
         {% if entry.description %}
@@ -88,6 +137,9 @@
   {% endif %}
 {% endmacro %}
 
+{% set can_manage = event.can_manage(session.user) %}
+
+<div id="confSectionsBox" style="display: none">></div>
 <div class="ngtimetable-header confheader" style="{{ conf_layout_params.bg_color_css }} {{ conf_layout_params.text_color_css }}">
   <a class="icon-prev back" href="{{event.url}}" style="{{ conf_layout_params.text_color_css|default('color: black') }}">
     {% if event.has_logo %}
@@ -103,21 +155,31 @@
 {% if not published %}
   {{ render_draft_mode_warning(event) }}
 {% endif %}
-<div class="ngtimetable" style="--rooms: {{rooms|length}};">
+<div class="ngtimetable" style="--rooms: {{rooms|length}};" {% if management %}data-management="true"{% endif %}>
   {% if rooms.keys()|length > 1 %}
     <div class="rooms">
-      <div class="corner"></div>
-      {% for room in rooms.keys() %}
-        <div class="room">{{room}}</div>
+      {% if can_manage %}
+        {% if management %}
+          <a class="corner icon-cross" href="{{url_for_plugin('ngtimetable.view', event)}}"></a>
+        {% else %}
+          <a class="corner icon-wrench" href="{{url_for_plugin('ngtimetable.manage', event)}}"></a>
+        {% endif %}
+      {% else %}
+        <div class="corner"></div>
+      {% endif %}
+      {% for room_name, roomdata in rooms.items() %}
+        <div class="room"
+             data-room-id="{{roomdata.room_id}}"
+             data-venue-id="{{roomdata.venue_id}}">{{room_name}}</div>
       {% endfor %}
     </div>
   {% endif %}
   <div class="schedule">
   {% for date, daydata in timetable.items() %}
     <a class="daymarker" id="{{daydata.weekday|lower}}">{{daydata.weekday}}, {{(daydata.date|format_date(format='long'))[:-6]}}</a>
-    <div class="timetable" style="--times: {{2 * (daydata.day_end - daydata.day_start + 1)}}">
+    <div class="timetable" data-date="{{date}}" style="--times: {{2 * (daydata.day_end - daydata.day_start + 1)}}">
       {% for hour in range(daydata.day_start, daydata.day_end + 1) %}
-        <div class="timeslot">
+        <div class="timeslot" data-hour="{{hour}}">
           <span class="weekday">{{daydata.weekday}}</span>
           <span class="timestring">{{hour}}:00</span>
         </div>

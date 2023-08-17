@@ -1,8 +1,8 @@
-#: indico_ngtimetable/forms.py:23
+#: indico_ngtimetable/forms.py:12
 msgid "Prefer Track Colors"
 msgstr ""
 
-#: indico_ngtimetable/forms.py:25
+#: indico_ngtimetable/forms.py:14
 msgid ""
 "Prefer the track's default session color in the timetable. Use this to "
 "assign colors by tracks instead of sessions. Make sure you DON'T assign "
@@ -10,15 +10,15 @@ msgid ""
 "schedule."
 msgstr ""
 
-#: indico_ngtimetable/plugin.py:42
+#: indico_ngtimetable/plugin.py:47
 msgid "Timetable NG"
 msgstr ""
 
-#: indico_ngtimetable/templates/ngtimetable.html:30
+#: indico_ngtimetable/templates/ngtimetable.html:52
 msgid "et al"
 msgstr ""
 
-#: indico_ngtimetable/templates/ngtimetable.html:54
+#: indico_ngtimetable/templates/ngtimetable.html:93
 msgid "min"
 msgstr ""
 

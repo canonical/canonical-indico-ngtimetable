@@ -5,7 +5,7 @@ from indico.modules.events.contributions import contribution_settings
 from indico.modules.events.layout.util import MenuEntryData
 
 from . import _
-from .controllers import RHNGTimetable
+from .controllers import RHNGTimetable, RHNGTimetableManage, RHNGTimetableMove
 from .forms import NGTimetableSettingsForm
 from .views import WPNGTimetable
 
@@ -24,12 +24,17 @@ class NGTimetablePlugin(IndicoPlugin):
 
         self.connect(signals.event.sidemenu, self._inject_menulink)
         self.inject_bundle("ngtimetable.css", WPNGTimetable)
+        self.inject_bundle("ngtimetablejs.js", WPNGTimetable)
 
     def get_blueprints(self):
         blueprint = IndicoPluginBlueprint(
             "ngtimetable", __name__, url_prefix="/event/<int:event_id>/ngtimetable"
         )
         blueprint.add_url_rule("/", "view", RHNGTimetable)
+        blueprint.add_url_rule("/manage", "manage", RHNGTimetableManage)
+        blueprint.add_url_rule(
+            "/manage/move/<int:entry_id>", "move", RHNGTimetableMove, methods=("POST",)
+        )
         return blueprint
 
     def _inject_menulink(self, sender, **kwargs):
