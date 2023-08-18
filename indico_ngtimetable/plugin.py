@@ -5,7 +5,12 @@ from indico.modules.events.contributions import contribution_settings
 from indico.modules.events.layout.util import MenuEntryData
 
 from . import _
-from .controllers import RHNGTimetable, RHNGTimetableManage, RHNGTimetableMove
+from .controllers import (
+    RHNGTimetable,
+    RHNGTimetableManage,
+    RHNGTimetableMove,
+    RHNGTimetableSchedule,
+)
 from .forms import NGTimetableSettingsForm
 from .views import WPNGTimetable
 
@@ -34,6 +39,12 @@ class NGTimetablePlugin(IndicoPlugin):
         blueprint.add_url_rule("/manage", "manage", RHNGTimetableManage)
         blueprint.add_url_rule(
             "/manage/move/<int:entry_id>", "move", RHNGTimetableMove, methods=("POST",)
+        )
+        blueprint.add_url_rule(
+            "/manage/schedule/<int:contrib_id>",
+            "schedule",
+            RHNGTimetableSchedule,
+            methods=("POST",),
         )
         return blueprint
 

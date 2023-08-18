@@ -28,16 +28,24 @@
        class="contribution"
        {% if management %}
          draggable="true"
-         data-id="{{entry.scheduleEntryId}}"
+         data-id="{{entry.scheduleEntryId|default('')}}"
+         data-contribution-id="{{entry.contributionId}}"
          data-color="{{entry.textColor|default('black')}}"
          data-background-color="{{entry.color|default('#f8f2e8')}}"
          data-halfhour-start="{{halfhour}}"
          data-halfhour-span="{{entry.halfhour_span}}"
-         data-start-time="{{entry.startDate.time[:5]}}"
-         data-end-time="{{entry.endDate.time[:5]}}"
+         {% if 'startDate' in entry %}
+           data-start-time="{{entry.startDate.time[:5]}}"
+         {% endif %}
+         {% if 'endDate' in entry %}
+           data-end-time="{{entry.endDate.time[:5]}}"
+         {% endif %}
          data-duration="{{entry.duration}}"
-         data-room-name="{{room.room_name}}"
-         data-room-id="{{room.room_id}}"
+         {% if room is defined %}
+           data-room-name="{{room.room_name}}"
+           data-room-id="{{room.room_id}}"
+           data-venue-id="{{room.venue_id}}"
+         {% endif %}
        {% else %}
          draggable="false"
        {% endif %}
@@ -53,22 +61,30 @@
         </span>
       {% endif %}
       <span class="time">
-        <span class="starttime">{{entry.startDate.time[:5]}}</span>–<span class="endtime">{{entry.endDate.time[:5]}}</span>
+        <span class="starttime">
+          {%- if entry.startDate is defined %}{{entry.startDate.time[:5]}}{% endif -%}
+        </span>–<span class="endtime">
+          {%- if entry.endDate is defined %}{{entry.endDate.time[:5]}}{% endif -%}
+        </span>
       </span>
+      <span class="duration">{{entry.duration|int}}{% trans %}min{% endtrans %}</span>
     </a>
   {% elif entry.entryType == "Contribution" and entry.subcontributions and entry.halfhour_span > 0 %}
     <div class="contribution hassubcontributions"
          {% if management %}
            draggable="true"
-           data-id="{{entry.scheduleEntryId}}"
+           data-id="{{entry.scheduleEntryId|default('')}}"
+           data-contribution-id="{{entry.contributionId}}"
            data-color="{{entry.textColor|default('black')}}"
            data-background-color="{{entry.color|default('#f8f2e8')}}"
            data-halfhour-start="{{halfhour}}"
            data-halfhour-span="{{entry.halfhour_span}}"
            data-duration="{{entry.duration}}"
-           data-room-name="{{room.room_name}}"
-           data-room-id="{{room.room_id}}"
-           data-venue-id="{{room.venue_id}}"
+           {% if room is defined %}
+             data-room-name="{{room.room_name}}"
+             data-room-id="{{room.room_id}}"
+             data-venue-id="{{room.venue_id}}"
+           {% endif %}
          {% endif %}
          style="{{grid(halfhour, entry.halfhour_span, room_index)}} {{colors}}">
       <span class="title">{{entry.title}}</span>
@@ -78,8 +94,13 @@
         {% endfor %}
       </div>
       <span class="time">
-        <span class="starttime">{{entry.startDate.time[:5]}}</span>–<span class="endtime">{{entry.endDate.time[:5]}}</span>
+        <span class="starttime">
+          {%- if entry.startDate is defined %}{{entry.startDate.time[:5]}}{% endif -%}
+        </span>–<span class="endtime">
+          {%- if entry.endDate is defined %}{{entry.endDate.time[:5]}}{% endif -%}
+        </span>
       </span>
+      <span class="duration">{{entry.duration|int}}{% trans %}min{% endtrans %}</span>
     </div>
   {% elif entry.entryType == "Subcontribution" %}
     <a href="{{entry.url}}"
@@ -139,7 +160,7 @@
 
 {% set can_manage = event.can_manage(session.user) %}
 
-<div id="confSectionsBox" style="display: none">></div>
+<div id="confSectionsBox" class="conf_leftMenu" style="display: none"></div>
 <div class="ngtimetable-header confheader" style="{{ conf_layout_params.bg_color_css }} {{ conf_layout_params.text_color_css }}">
   <a class="icon-prev back" href="{{event.url}}" style="{{ conf_layout_params.text_color_css|default('color: black') }}">
     {% if event.has_logo %}
@@ -154,6 +175,13 @@
 </div>
 {% if not published %}
   {{ render_draft_mode_warning(event) }}
+{% endif %}
+{% if management %}
+  <div class="ngtimetable-unscheduled">
+    {% for entry in unscheduled %}
+      {{show_entry(entry)}}
+    {% endfor %}
+  </div>
 {% endif %}
 <div class="ngtimetable" style="--rooms: {{rooms|length}};" {% if management %}data-management="true"{% endif %}>
   {% if rooms.keys()|length > 1 %}

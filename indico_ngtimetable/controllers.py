@@ -2,7 +2,11 @@ import dateutil.parser
 import pytz
 from flask import request, session
 from indico.modules.events.contributions import contribution_settings
-from indico.modules.events.contributions.operations import update_contribution
+from indico.modules.events.contributions.models.contributions import Contribution
+from indico.modules.events.contributions.operations import (
+    schedule_contribution,
+    update_contribution,
+)
 from indico.modules.events.management.controllers import RHManageEventBase
 from indico.modules.events.timetable.controllers.display import (
     RHTimetableProtectionBase,
@@ -41,10 +45,17 @@ class RHNGTimetable(RHTimetableProtectionBase):
 
         published = contribution_settings.get(self.event, "published")
 
+        unscheduled = (
+            serializer.serialize_unscheduled_contributions()
+            if self.__class__.MANAGEMENT
+            else []
+        )
+
         return WPNGTimetable(
             self,
             self.event,
             management=self.__class__.MANAGEMENT,
+            unscheduled=unscheduled,
             timetable=timetable,
             rooms=serializer.room_map,
             published=published,
@@ -157,3 +168,50 @@ class RHNGTimetableMove(RHManageEventBase):
             update_contribution(self.contribution, contrib_updates)
 
         return jsonify_data(flash=False)
+
+
+class RHNGTimetableSchedule(RHManageEventBase):
+    def _process_args(self):
+        super()._process_args()
+        self.contrib = (
+            Contribution.query.with_parent(self.event)
+            .filter_by(id=request.view_args["contrib_id"])
+            .first_or_404()
+        )
+
+    def _process_POST(self):
+        tz = pytz.timezone(request.json["startDate"]["timezone"])
+        new_start_dt = tz.localize(
+            dateutil.parser.parse("{date}T{time}".format(**request.json["startDate"]))
+        ).astimezone(pytz.utc)
+
+        json_location_data = request.json["locationData"]
+        location_data = {"inheriting": json_location_data["inheriting"]}
+        if "room_id" in json_location_data and "venue_id" in json_location_data:
+            location_data["room"] = Room.get(int(json_location_data["room_id"]))
+            location_data["venue"] = Location.get(int(json_location_data["venue_id"]))
+        elif "room_name" in json_location_data:
+            location_data["room_name"] = json_location_data["room_name"]
+
+        session_block = None
+        if request.json["session"]:
+            session_block = self.event.get_session_block(request.json["session"])
+
+        with (
+            track_time_changes(auto_extend=False, user=session.user),
+            track_location_changes(),
+        ):
+            contrib_updates = {
+                "location_data": location_data,
+                "session": session_block.session if session_block else None,
+                "session_block": session_block,
+            }
+            update_contribution(self.contrib, contrib_updates)
+            entry = schedule_contribution(
+                self.contrib,
+                new_start_dt,
+                session_block=session_block,
+                extend_parent=False,
+            )
+
+        return jsonify_data(flash=False, id=entry.id)

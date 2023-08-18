@@ -5,7 +5,7 @@ const SESSIONTABLE_SELECTOR =
   ".ngtimetable > .schedule > .timetable > .break";
 const TIMESLOT_SELECTOR = ".ngtimetable > .schedule > .timetable > .timeslot";
 const ROOM_SELECTOR = ".ngtimetable > .rooms > .room";
-const CONTRIBUTION_SELECTOR = ".timetable .contribution";
+const CONTRIBUTION_SELECTOR = ".timetable .contribution, .ngtimetable-unscheduled .contribution";
 
 let dragnode = null;
 let columnwidth = 0;
@@ -19,6 +19,7 @@ function dragStart(event) {
   event.target.style.opacity = 0.4;
 
   dragnode = event.target;
+  dragnode._originalParent = dragnode.parentNode;
 }
 
 function dragEnd(event) {
@@ -31,7 +32,10 @@ function dragEnd(event) {
     dragnode.style.backgroundColor = dragnode.dataset.backgroundColor;
     dragnode.querySelector(".starttime").textContent = dragnode.dataset.startTime;
     dragnode.querySelector(".endtime").textContent = dragnode.dataset.endTime;
+
+    dragnode._originalParent.appendChild(dragnode);
   }
+  dragnode._originalParent = null;
   dragnode = null;
 }
 
@@ -77,6 +81,16 @@ function dragOver(event) {
   dragnode.querySelector(".endtime").textContent = endTime.substring(0, 5);
 
   event.dataTransfer.dropEffect = "move";
+}
+
+function dragEnterUnscheduled(event) {
+  event.preventDefault();
+  event.stopPropagation();
+  event.dataTransfer.dropEffect = "move";
+  event.currentTarget.appendChild(dragnode);
+  dragnode.style.color = dragnode.dataset.color;
+  dragnode.style.backgroundColor = dragnode.dataset.backgroundColor;
+  dragnode.scrollIntoView({ block: "nearest", behavior: "smooth" });
 }
 
 function getContributionTimes(column, row, span = 0) {
@@ -145,9 +159,32 @@ function dragDrop(event) {
     }
   }
 
-  const url = new URL(`./manage/move/${dragnode.dataset.id}`, window.location.href);
-  indicoAxios.post(url.toString(), data).catch(handleAxiosError);
+  if (dragnode.dataset.id) {
+    const url = new URL(`./manage/move/${dragnode.dataset.id}`, window.location.href);
+    indicoAxios.post(url.toString(), data).catch(handleAxiosError);
+  } else {
+    const url = new URL(
+      `./manage/schedule/${dragnode.dataset.contributionId}`,
+      window.location.href,
+    );
+    indicoAxios.post(url.toString(), data).then((respdata) => {
+      dragnode.dataset.id = respdata.data.id;
+    }, handleAxiosError);
+  }
 }
+
+function dragDropUnscheduled(event) {
+  event.preventDefault();
+
+  if (dragnode.dataset.id) {
+    const url = new URL(
+      `../manage/timetable/entry/${dragnode.dataset.id}/delete`,
+      window.location.href,
+    );
+    indicoAxios.post(url.toString()).then(() => delete dragnode.dataset.id, handleAxiosError);
+  }
+}
+
 function dragSetup() {
   if (document.querySelector(".ngtimetable").dataset.management !== "true") {
     return;
@@ -161,6 +198,10 @@ function dragSetup() {
     node.addEventListener("dragover", dragOver);
     node.addEventListener("drop", dragDrop);
   }
+
+  const unscheduled = document.querySelector(".ngtimetable-unscheduled");
+  unscheduled.addEventListener("dragover", dragEnterUnscheduled);
+  unscheduled.addEventListener("drop", dragDropUnscheduled);
 
   columnwidth = Math.floor(document.querySelector(TIMESLOT_SELECTOR).offsetWidth / 2);
   rowheight = document.querySelector(ROOM_SELECTOR).offsetHeight;

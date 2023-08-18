@@ -1,9 +1,16 @@
 import math
 from datetime import datetime
 
+from indico.modules.events.contributions.models.contributions import Contribution
+from indico.modules.events.contributions.models.persons import AuthorType
 from indico.modules.events.timetable.legacy import TimetableSerializer
-from indico.modules.events.timetable.models.entries import TimetableEntryType
+from indico.modules.events.timetable.models.entries import (
+    TimetableEntry,
+    TimetableEntryType,
+)
+from indico.util.date_time import iterdays
 from indico.web.flask.util import url_for
+from sqlalchemy.orm import defaultload
 
 from . import _
 
@@ -22,9 +29,6 @@ class NGTimetableSerializer(TimetableSerializer):
         This is basically Indico's serialize_timetable, but I needed to add loading
         subcontributions to the SQLalchemy loading strategy.
         """
-        from indico.modules.events.timetable.models.entries import TimetableEntry
-        from indico.util.date_time import iterdays
-        from sqlalchemy.orm import defaultload
 
         tzinfo = self.event.tzinfo if self.management else self.event.display_tzinfo
         self.event.preload_all_acl_entries()
@@ -103,6 +107,69 @@ class NGTimetableSerializer(TimetableSerializer):
             }
 
         return data
+
+    def serialize_unscheduled_contributions(self):
+        query_options = (
+            defaultload("abstract"),
+            defaultload("person_links"),
+            defaultload("subcontribution"),
+        )
+        query = (
+            Contribution.query.with_parent(self.event)
+            .options(*query_options)
+            .filter(~Contribution.is_scheduled)
+            .all()
+        )
+
+        unscheduled = []
+        for contribution in query:
+            data = {
+                "contributionId": contribution.id,
+                "entryType": "Contribution",
+                "title": contribution.title,
+                "description": contribution.description,
+                "duration": contribution.duration_display.seconds / 60,
+                "url": url_for("contributions.display_contribution", contribution),
+                "halfhour_span": math.ceil(
+                    contribution.duration_display.seconds / 1800
+                ),
+                "location_data": {"room_name": "", "room_id": ""},
+                "abstract_score": (
+                    contribution.abstract.score if contribution.abstract else 0
+                )
+                or 0,
+                "presenters": list(
+                    map(
+                        self._get_person_data,
+                        sorted(
+                            (p for p in contribution.person_links if p.is_speaker),
+                            key=lambda x: (
+                                x.author_type != AuthorType.primary,
+                                x.author_type != AuthorType.secondary,
+                                x.display_order_key,
+                            ),
+                        ),
+                    )
+                ),
+            }
+            data["subcontributions"] = [
+                self.serialize_subcontribution(x) for x in contribution.subcontributions
+            ]
+
+            if contribution.session:
+                data.update(self._get_color_data(contribution.session))
+            elif (
+                self.use_track_colors
+                and contribution.track
+                and contribution.track.default_session
+            ):
+                data.update(self._get_color_data(contribution.track.default_session))
+
+            unscheduled.append(data)
+
+        return sorted(
+            unscheduled, key=lambda val: (val["abstract_score"], -val["duration"])
+        )
 
     def _get_location_data(self, obj):
         data = {}

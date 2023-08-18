@@ -85,7 +85,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 100%;
+      width: 40px;
       height: 100%;
       border: 1px solid grey;
       border-width: 1px 1px 1px 0;
@@ -128,117 +128,152 @@
       grid-template-rows: [times] 40px  repeat(var(--rooms), [room] minmax(200px, 1fr));
       grid-template-columns: repeat(var(--times), [halfhour] minmax(150px, 1fr));
       gap: 2px;
+    }
+  }
+}
 
-      > .timeslot {
-        grid-row: 1;
-        grid-column: span 2;
+.ngtimetable-unscheduled {
+  display: flex;
+  flex-direction: row;
+  gap: 2px;
+  flex-wrap: wrap;
+  margin: 40px;
+  height: 12rem;
+  min-height: 200px;
+  overflow: auto;
+  resize: vertical;
+  border: 1px solid grey;
+  padding: 2px;
+
+  .contribution {
+    width: initial !important;
+    height: initial !important;
+    max-width: 150px;
+
+    > .time {
+      display: none;
+    }
+    > .duration {
+      display: inline !important;
+    }
+    > .subcontributions {
+      visibility: hidden;
+    }
+  }
+}
+
+.ngtimetable > .schedule > .timetable, .ngtimetable-unscheduled {
+  > .timeslot {
+    grid-row: 1;
+    grid-column: span 2;
+    padding: 8px;
+    scroll-behavior: smooth;
+    scroll-snap-align: start;
+    border: 1px solid grey;
+    border-top: 0;
+
+    &:not(:first-child) > .weekday {
+      display: none;
+    }
+  }
+
+  .contribution, > .break, > .session {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    text-decoration: none;
+    color: black;
+  }
+
+  .break {
+    border: 1px solid grey;
+    background: #f8f2e8;
+    color: white;
+    justify-content: center;
+    display: flex;
+    align-items: center;
+    z-index: 1;
+    padding: 8px;
+
+    > .title {
+      flex: 1;
+      font-size: 2.5rem;
+      writing-mode: vertical-rl;
+      text-align: center;
+    }
+  }
+
+  .contribution {
+    z-index: 3;
+    padding: 8px;
+    border: 1px solid grey;
+    background: #f8f2e8;
+
+    > .title {
+      font-weight: bold;
+    }
+
+    > .time {
+      font-weight: 300;
+    }
+    > .duration {
+      display: none;
+    }
+
+    &:not(.hassubcontributions) > .title {
+      flex: 1;
+    }
+  }
+
+  .contribution > .subcontributions {
+    display: flex;
+    padding: 2px 0 2px 8px;
+    font-size: 0.9em;
+    flex: 1;
+    align-items: start;
+
+    > .subcontribution {
+      display: flex;
+      width: 100%;
+      text-decoration: none;
+      color: inherit;
+      gap: 5px;
+
+      > .duration {
+        font-weight: 300;
+      }
+    }
+  }
+
+  > .session {
+    z-index: 2;
+
+    > .title { /* stylelint-disable-line no-descending-specificity */
+      font-weight: bold;
+      padding: 2px 8px;
+      border: 1px solid grey;
+      margin-bottom: 2px;
+
+      &:empty {
+        display: none;
+      }
+    }
+
+    > .time {
+      font-weight: 300;
+    }
+
+    > .contributions {
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(var(--times), [halfhour] 1fr);
+      grid-template-rows: [room] 1fr;
+      gap: 2px;
+
+      > .contribution {
         padding: 8px;
-        scroll-behavior: smooth;
-        scroll-snap-align: start;
-        border: 1px solid grey;
-        border-top: 0;
-
-        &:not(:first-child) > .weekday {
-          display: none;
-        }
-      }
-
-      .contribution, > .break, > .session {
-        display: flex;
-        flex-direction: column;
-        width: 100%;
-        height: 100%;
-        text-decoration: none;
-        color: black;
-      }
-
-      .break {
-        border: 1px solid grey;
-        background: #f8f2e8;
-        color: white;
-        justify-content: center;
-        display: flex;
-        align-items: center;
-        z-index: 1;
-        padding: 8px;
-
-        > .title {
-          flex: 1;
-          font-size: 2.5rem;
-          writing-mode: vertical-rl;
-          text-align: center;
-        }
-      }
-
-      .contribution {
-        z-index: 3;
-        padding: 8px;
-        border: 1px solid grey;
-        background: #f8f2e8;
-
-        > .title {
-          font-weight: bold;
-        }
-
-        > .time {
-          font-weight: 300;
-        }
-
-        &:not(.hassubcontributions) > .title {
-          flex: 1;
-        }
-      }
-
-      .contribution > .subcontributions {
-        display: flex;
-        padding: 2px 0 2px 8px;
         font-size: 0.9em;
-        flex: 1;
-        align-items: start;
-
-        > .subcontribution {
-          display: flex;
-          width: 100%;
-          text-decoration: none;
-          color: inherit;
-          gap: 5px;
-
-          > .duration {
-            font-weight: 300;
-          }
-        }
-      }
-
-      > .session {
-        z-index: 2;
-
-        > .title { /* stylelint-disable-line no-descending-specificity */
-          font-weight: bold;
-          padding: 2px 8px;
-          border: 1px solid grey;
-          margin-bottom: 2px;
-
-          &:empty {
-            display: none;
-          }
-        }
-
-        > .time {
-          font-weight: 300;
-        }
-
-        > .contributions {
-          flex: 1;
-          display: grid;
-          grid-template-columns: repeat(var(--times), [halfhour] 1fr);
-          grid-template-rows: [room] 1fr;
-          gap: 2px;
-
-          > .contribution {
-            padding: 8px;
-            font-size: 0.9em;
-          }
-        }
       }
     }
   }
