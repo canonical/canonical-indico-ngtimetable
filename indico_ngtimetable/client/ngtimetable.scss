@@ -134,9 +134,8 @@
 
 .ngtimetable-unscheduled {
   display: flex;
-  flex-direction: row;
+  flex-flow: row wrap;
   gap: 2px;
-  flex-wrap: wrap;
   margin: 40px;
   height: 12rem;
   min-height: 200px;
@@ -153,9 +152,11 @@
     > .time {
       display: none;
     }
+
     > .duration {
       display: inline !important;
     }
+
     > .subcontributions {
       visibility: hidden;
     }
@@ -217,6 +218,7 @@
     > .time {
       font-weight: 300;
     }
+
     > .duration {
       display: none;
     }
@@ -249,7 +251,7 @@
   > .session {
     z-index: 2;
 
-    > .title { /* stylelint-disable-line no-descending-specificity */
+    > .title {
       font-weight: bold;
       padding: 2px 8px;
       border: 1px solid grey;
