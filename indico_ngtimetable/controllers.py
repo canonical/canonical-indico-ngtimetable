@@ -66,11 +66,57 @@ class RHNGTimetableManage(RHNGTimetable):
     MANAGEMENT = True
 
     def _check_access(self):
+        super()._check_access()
         if not self.event.can_manage(session.user):
             raise Forbidden()
 
 
-class RHNGTimetableMove(RHManageEventBase):
+class RNHGTimetableOperationsBase(RHManageEventBase):
+    def _check_access(self):
+        super()._check_access()
+        if not self.event.can_manage(session.user):
+            raise Forbidden()
+
+    def _process_args(self):
+        super()._process_args()
+
+        self.targetSessionTimetableEntry = None
+        self.session = None
+        if request.json.get("session", None):
+            self.targetSessionTimetableEntry = self.event.timetable_entries.filter_by(
+                id=request.json["session"]
+            ).first_or_404()
+            self.session = self.targetSessionTimetableEntry.session_block.session
+
+        tz = pytz.timezone(request.json["startDate"]["timezone"])
+        self.new_start_dt = tz.localize(
+            dateutil.parser.parse("{date}T{time}".format(**request.json["startDate"]))
+        ).astimezone(pytz.utc)
+
+        json_location_data = request.json["locationData"]
+        location_data = {"inheriting": json_location_data["inheriting"]}
+        if "room_id" in json_location_data and "venue_id" in json_location_data:
+            location_data["room"] = Room.get(int(json_location_data["room_id"]))
+            location_data["venue"] = Location.get(int(json_location_data["venue_id"]))
+        elif "room_name" in json_location_data:
+            location_data["room_name"] = json_location_data["room_name"]
+
+        self.contrib_updates = {
+            "location_data": location_data,
+            "session": None,
+            "session_block": None,
+        }
+
+        if self.targetSessionTimetableEntry:
+            self.contrib_updates[
+                "session"
+            ] = self.targetSessionTimetableEntry.session_block.session
+            self.contrib_updates[
+                "session_block"
+            ] = self.targetSessionTimetableEntry.session_block
+
+
+class RHNGTimetableMove(RNHGTimetableOperationsBase):
     POST_JSON_SCHEMA = {
         "type": "object",
         "properties": {
@@ -105,10 +151,6 @@ class RHNGTimetableMove(RHManageEventBase):
         },
     }
 
-    def _check_access(self):
-        if not self.event.can_manage(session.user):
-            raise Forbidden()
-
     def _process_args(self):
         super()._process_args()
         self.validate_json(RHNGTimetableMove.POST_JSON_SCHEMA)
@@ -119,58 +161,24 @@ class RHNGTimetableMove(RHManageEventBase):
                 id=request.view_args["entry_id"]
             ).first_or_404()
             self.contribution = self.entry.contribution
-            print("CA", self.contribution)
-
-        self.targetSessionTimetableEntry = None
-        self.session = None
-        if request.json.get("session", None):
-            self.targetSessionTimetableEntry = self.event.timetable_entries.filter_by(
-                id=request.json["session"]
-            ).first_or_404()
-            self.session = self.targetSessionTimetableEntry.session_block.session
 
     def _process_POST(self):
-        tz = pytz.timezone(request.json["startDate"]["timezone"])
-        new_start_dt = tz.localize(
-            dateutil.parser.parse("{date}T{time}".format(**request.json["startDate"]))
-        ).astimezone(pytz.utc)
-
-        json_location_data = request.json["locationData"]
-        location_data = {"inheriting": json_location_data["inheriting"]}
-        if "room_id" in json_location_data and "venue_id" in json_location_data:
-            location_data["room"] = Room.get(int(json_location_data["room_id"]))
-            location_data["venue"] = Location.get(int(json_location_data["venue_id"]))
-        elif "room_name" in json_location_data:
-            location_data["room_name"] = json_location_data["room_name"]
+        tt_updates = {
+            "parent": self.targetSessionTimetableEntry,
+            "start_dt": self.new_start_dt,
+        }
 
         with (
             track_time_changes(auto_extend=True, user=session.user),
             track_location_changes(),
         ):
-            tt_updates = {
-                "parent": self.targetSessionTimetableEntry,
-                "start_dt": new_start_dt,
-            }
-            contrib_updates = {
-                "location_data": location_data,
-                "session": None,
-                "session_block": None,
-            }
-            if self.targetSessionTimetableEntry:
-                contrib_updates[
-                    "session"
-                ] = self.targetSessionTimetableEntry.session_block.session
-                contrib_updates[
-                    "session_block"
-                ] = self.targetSessionTimetableEntry.session_block
-
             update_timetable_entry(self.entry, tt_updates)
-            update_contribution(self.contribution, contrib_updates)
+            update_contribution(self.contribution, self.contrib_updates)
 
         return jsonify_data(flash=False)
 
 
-class RHNGTimetableSchedule(RHManageEventBase):
+class RHNGTimetableSchedule(RNHGTimetableOperationsBase):
     def _process_args(self):
         super()._process_args()
         self.contrib = (
@@ -180,36 +188,20 @@ class RHNGTimetableSchedule(RHManageEventBase):
         )
 
     def _process_POST(self):
-        tz = pytz.timezone(request.json["startDate"]["timezone"])
-        new_start_dt = tz.localize(
-            dateutil.parser.parse("{date}T{time}".format(**request.json["startDate"]))
-        ).astimezone(pytz.utc)
-
-        json_location_data = request.json["locationData"]
-        location_data = {"inheriting": json_location_data["inheriting"]}
-        if "room_id" in json_location_data and "venue_id" in json_location_data:
-            location_data["room"] = Room.get(int(json_location_data["room_id"]))
-            location_data["venue"] = Location.get(int(json_location_data["venue_id"]))
-        elif "room_name" in json_location_data:
-            location_data["room_name"] = json_location_data["room_name"]
-
-        session_block = None
-        if request.json["session"]:
-            session_block = self.event.get_session_block(request.json["session"])
-
         with (
             track_time_changes(auto_extend=False, user=session.user),
             track_location_changes(),
         ):
-            contrib_updates = {
-                "location_data": location_data,
-                "session": session_block.session if session_block else None,
-                "session_block": session_block,
-            }
-            update_contribution(self.contrib, contrib_updates)
+            update_contribution(self.contrib, self.contrib_updates)
+            session_block = (
+                self.targetSessionTimetableEntry.session_block
+                if self.targetSessionTimetableEntry
+                else None
+            )
+
             entry = schedule_contribution(
                 self.contrib,
-                new_start_dt,
+                self.new_start_dt,
                 session_block=session_block,
                 extend_parent=False,
             )
