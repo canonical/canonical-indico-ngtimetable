@@ -1,27 +1,63 @@
 ---
 name: Checkin
 
-on:
-  push:
-    branches:
-      - main
-  pull_request:
+on: push
 
 jobs:
-  lint:
+  build-indico-plugin:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+        with:
+          path: plugin
 
-      - name: Setup Python
-        uses: actions/setup-python@v4
-
-      - name: Install dependencies
+      - name: Clone indico
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install tox
-          npm ci
+          git clone https://github.com/indico/indico.git indico-src \
+              --depth 1 --branch master
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          cache: npm
+          cache-dependency-path: indico-src/package-lock.json
+
+      - name: npm ci
+        working-directory: ./indico-src
+        run: npm ci
+
+      - name: Setup python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+          cache: pip
+
+      - name: pip plugin
+        working-directory: ./plugin
+        run: pip install -e '.[dev]'
 
       - name: Tox
         run: python -m tox
+
+      - name: pip indico
+        working-directory: ./indico-src
+        run: pip install -e '.[dev]'
+
+      - name: Build wheel
+        working-directory: ./indico-src
+        run: ./bin/maintenance/build-wheel.py plugin ../plugin
+
+      - name: Upload Wheel
+        uses: actions/upload-artifact@v3
+        with:
+          name: wheel
+          path: indico-src/dist/*.whl
+
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          fail_on_unmatched_files: true
+          files: indico-src/dist/*.whl
