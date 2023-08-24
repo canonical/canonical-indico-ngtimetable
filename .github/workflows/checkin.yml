@@ -24,7 +24,11 @@ jobs:
           cache: npm
           cache-dependency-path: indico-src/package-lock.json
 
-      - name: npm ci
+      - name: npm ci plugin
+        working-directory: ./plugin
+        run: npm ci
+
+      - name: npm ci indico
         working-directory: ./indico-src
         run: npm ci
 
@@ -39,6 +43,7 @@ jobs:
         run: pip install -e '.[dev]'
 
       - name: Tox
+        working-directory: ./plugin
         run: python -m tox
 
       - name: pip indico
