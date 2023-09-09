@@ -130,7 +130,7 @@
     > .timetable {
       display: grid;
       grid-template-rows: [times] 40px  repeat(var(--rooms), [room] minmax(200px, 1fr));
-      grid-template-columns: repeat(var(--times), [timeunit] minmax(calc((100vw - 40px - 16px) / 6 / var(--units-per-hour) - 2px), 1fr));
+      grid-template-columns: repeat(var(--times), [timeunit] minmax(calc((100vw - 40px - 16px) / var(--hours-per-screen) / var(--units-per-hour) - 2px), 1fr));
       gap: 2px;
     }
   }
@@ -286,7 +286,7 @@
   }
 }
 
-@media only screen and (max-width: 660px) {
+@media only screen and (max-width: 1250px) {
   .main-action-bar {
     flex-flow: wrap-reverse;
     height: 70px;
@@ -318,11 +318,17 @@
     min-height: 90vh;
 
     > .schedule > .timetable {
-      grid-template-columns: repeat(var(--times), [timeunit] calc((100vw - 40px - 16px) / var(--units-per-hour) - 2px));
+      grid-template-columns: repeat(var(--times), [timeunit] calc((100vw - 40px - 16px) / (var(--hours-per-screen) / 2)  / var(--units-per-hour) - 2px));
 
       > .timeslot:not(:first-child) > .weekday {
         display: inline;
       }
     }
+  }
+}
+
+@media only screen and (max-width: 550px) {
+  .ngtimetable > .schedule > .timetable {
+      grid-template-columns: repeat(var(--times), [timeunit] calc((100vw - 40px - 16px) / var(--units-per-hour) - 2px));
   }
 }
