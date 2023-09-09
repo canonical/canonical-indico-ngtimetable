@@ -27,6 +27,14 @@ class NGTimetableSerializer(TimetableSerializer):
         self.granularity = granularity
         self.units_per_hour = 60 // self.granularity
 
+        tzinfo = self.event.tzinfo if self.management else self.event.display_tzinfo
+        self.max_date = tzinfo.localize(
+            datetime.max.replace(year=datetime.max.year - 1)
+        )
+        self.min_date = tzinfo.localize(
+            datetime.min.replace(year=datetime.min.year + 1)
+        )
+
     def _orig_serialize_timetable(
         self, days=None, hide_weekends=False, strip_empty_days=False, **kwargs
     ):
@@ -90,14 +98,8 @@ class NGTimetableSerializer(TimetableSerializer):
 
     def serialize_timetable(self, **kwargs):
         self.room_map = {}
-        self._lastsessionhour = {}
-
-        tzinfo = self.event.tzinfo if self.management else self.event.display_tzinfo
-        self._day_start_time = self.event.start_dt.astimezone(tzinfo).hour
-        day_start = self._day_start_time - self.hour_padding
-        if day_start < 0:
-            day_start = self._day_start_time
-            self.hour_padding = 0
+        self._earliest_start = {}
+        self._latest_end = {}
 
         data = self._orig_serialize_timetable(**kwargs)
 
@@ -106,8 +108,12 @@ class NGTimetableSerializer(TimetableSerializer):
             data[key] = {
                 "weekday": _(keydate.strftime("%A")),
                 "date": keydate,
-                "day_start": day_start,
-                "day_end": self._lastsessionhour[key] + self.hour_padding,
+                "day_start": max(
+                    0, self._earliest_start[key].time().hour - self.hour_padding
+                ),
+                "day_end": min(
+                    23, self._latest_end[key].time().hour + self.hour_padding
+                ),
                 "timetable": data[key],
             }
 
@@ -181,6 +187,21 @@ class NGTimetableSerializer(TimetableSerializer):
         data["location_data"] = obj.widget_location_data
         return data
 
+    def _update_day_range(self, entry):
+        tzinfo = self.event.tzinfo if self.management else self.event.display_tzinfo
+
+        start_dt = entry.start_dt.astimezone(tzinfo)
+        end_dt = entry.end_dt.astimezone(tzinfo)
+        startkey = start_dt.strftime("%Y%m%d")
+        endkey = end_dt.strftime("%Y%m%d")
+
+        self._earliest_start[startkey] = min(
+            self._earliest_start.get(startkey, self.max_date), start_dt
+        )
+        self._latest_end[endkey] = max(
+            self._latest_end.get(endkey, self.min_date), end_dt
+        )
+
     def _get_ng_entry_data(self, entry):
         data = {}
 
@@ -195,27 +216,16 @@ class NGTimetableSerializer(TimetableSerializer):
         start_dt = start_dt.astimezone(tzinfo)
         end_dt = end_dt.astimezone(tzinfo)
 
-        hour_padding_units = self.hour_padding * self.units_per_hour
-        day_start_units = self._day_start_time * self.units_per_hour
-
-        timeunits = (
+        data["timeunit_start"] = (
             (60 * start_dt.hour + start_dt.minute) // self.granularity
-            - day_start_units
-            + hour_padding_units
+        ) + 1
+        data["timeunit_span"] = (
+            math.ceil((60 * end_dt.hour + end_dt.minute) / self.granularity)
             + 1
-        )
-        data["timeunit_start"] = timeunits
-
-        timeunits = (
-            math.ceil(
-                (60 * end_dt.hour + end_dt.minute) / self.granularity
-            )  # time units since beginning of day
-            - day_start_units  # remove time units before the day started
-            + hour_padding_units  # Add hour padding to the beginning/end
-            + 1  # Add one since CSS is 1-based
+            - data["timeunit_start"]
         )
 
-        data["timeunit_span"] = timeunits - data["timeunit_start"]
+        self._update_day_range(entry)
 
         return data
 
@@ -228,13 +238,6 @@ class NGTimetableSerializer(TimetableSerializer):
             room_data = entry.session_block.widget_location_data
             room_data["index"] = len(self.room_map) + 1
             self.room_map[entry.session_block.room_name] = room_data
-
-        tzinfo = self.event.tzinfo if self.management else self.event.display_tzinfo
-        daykey = entry.start_dt.astimezone(tzinfo).strftime("%Y%m%d")
-        endhour = entry.end_dt.astimezone(tzinfo).time().hour
-        self._lastsessionhour[daykey] = max(
-            self._lastsessionhour.get(daykey, 0), endhour
-        )
 
         self._in_session_block = False
         return data
@@ -250,13 +253,6 @@ class NGTimetableSerializer(TimetableSerializer):
             room_data = entry.contribution.widget_location_data
             room_data["index"] = len(self.room_map) + 1
             self.room_map[entry.contribution.room_name] = room_data
-
-        tzinfo = self.event.tzinfo if self.management else self.event.display_tzinfo
-        daykey = entry.start_dt.astimezone(tzinfo).strftime("%Y%m%d")
-        endhour = entry.end_dt.astimezone(tzinfo).time().hour
-        self._lastsessionhour[daykey] = max(
-            self._lastsessionhour.get(daykey, 0), endhour
-        )
 
         if (
             self.use_track_colors
