@@ -217,7 +217,7 @@
         </div>
       {% endfor %}
       {% for key, entry in daydata.timetable.items() %}
-          {{ show_entry(entry) }}
+          {{ show_entry(entry, None, daydata.day_start * units_per_hour + 1) }}
       {% endfor %}
     </div>
   {% endfor %}
