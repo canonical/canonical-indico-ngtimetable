@@ -169,8 +169,9 @@ function dragDrop(event) {
       `./manage/schedule/${dragnode.dataset.contributionId}`,
       window.location.href,
     );
+    const lastdragnode = dragnode;
     indicoAxios.post(url.toString(), data).then((respdata) => {
-      dragnode.dataset.id = respdata.data.id;
+      lastdragnode.dataset.id = respdata.data.id;
     }, handleAxiosError);
   }
 }
