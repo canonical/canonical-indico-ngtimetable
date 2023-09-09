@@ -1,6 +1,6 @@
 import dateutil.parser
 import pytz
-from flask import request, session
+from flask import flash, request, session
 from indico.modules.events.contributions import contribution_settings
 from indico.modules.events.contributions.models.contributions import Contribution
 from indico.modules.events.contributions.operations import (
@@ -15,11 +15,14 @@ from indico.modules.events.timetable.operations import update_timetable_entry
 from indico.modules.events.util import track_location_changes, track_time_changes
 from indico.modules.rb.models.locations import Location
 from indico.modules.rb.models.rooms import Room
+from indico.web.forms.base import FormDefaults
 from indico.web.util import jsonify_data
 from werkzeug.exceptions import Forbidden
 
+from . import _
+from .forms import NGTimetableSettingsForm
 from .serializer import NGTimetableSerializer
-from .views import WPNGTimetable
+from .views import WPNGTimetable, WPNGTimetableSettings
 
 
 class RHNGTimetable(RHTimetableProtectionBase):
@@ -34,11 +37,16 @@ class RHNGTimetable(RHTimetableProtectionBase):
 
     def _process(self):
         self.event.preload_all_acl_entries()
-        use_track_colors = self.plugin.settings.get("timetable_use_track_colors")
+
+        granularity = self.plugin.event_settings.get(self.event, "granularity")
+        use_track_colors = self.plugin.event_settings.get(
+            self.event, "use_track_colors"
+        )
 
         serializer = NGTimetableSerializer(
             self.event,
             use_track_colors=use_track_colors,
+            granularity=granularity,
             management=self.__class__.MANAGEMENT,
         )
         timetable = serializer.serialize_timetable(strip_empty_days=True)
@@ -59,6 +67,7 @@ class RHNGTimetable(RHTimetableProtectionBase):
             timetable=timetable,
             rooms=serializer.room_map,
             published=published,
+            granularity=granularity,
         ).display()
 
 
@@ -207,3 +216,26 @@ class RHNGTimetableSchedule(RNHGTimetableOperationsBase):
             )
 
         return jsonify_data(flash=False, id=entry.id)
+
+
+class RHNGTimetableEventSettings(RHManageEventBase):
+    def _process_args(self):
+        super()._process_args()
+        from .plugin import NGTimetablePlugin
+
+        self.plugin = NGTimetablePlugin
+
+    def _process(self):
+        plugin_event_settings = self.plugin.event_settings.get_all(self.event)
+        defaults = FormDefaults(
+            {k: v for k, v in plugin_event_settings.items() if v is not None}
+        )
+
+        form = NGTimetableSettingsForm(obj=defaults)
+        if form.validate_on_submit():
+            self.plugin.event_settings.set_multi(self.event, form.data)
+            flash(_("NGTimetable settings saved"), "success")
+
+        return WPNGTimetableSettings.render_template(
+            "ngtimetable_settings.html", self.event, form=form
+        )

@@ -1,6 +1,11 @@
 from flask_pluginengine import render_plugin_template
 from indico.core.plugins import WPJinjaMixinPlugin
+from indico.modules.events.management.views import WPEventManagement
 from indico.modules.events.views import WPConferenceDisplayBase
+
+
+class WPNGTimetableSettings(WPJinjaMixinPlugin, WPEventManagement):
+    sidemenu_option = "ngtimetable"
 
 
 class WPNGTimetable(WPJinjaMixinPlugin, WPConferenceDisplayBase):

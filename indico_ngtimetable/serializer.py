@@ -16,11 +16,16 @@ from . import _
 
 
 class NGTimetableSerializer(TimetableSerializer):
-    def __init__(self, *args, hour_padding=1, use_track_colors=True, **kwargs):
+    def __init__(
+        self, *args, hour_padding=1, granularity=30, use_track_colors=True, **kwargs
+    ):
         super().__init__(*args, **kwargs)
         self.hour_padding = hour_padding
         self.use_track_colors = use_track_colors
         self._in_session_block = False
+
+        self.granularity = granularity
+        self.units_per_hour = 60 // self.granularity
 
     def _orig_serialize_timetable(
         self, days=None, hide_weekends=False, strip_empty_days=False, **kwargs
@@ -128,10 +133,10 @@ class NGTimetableSerializer(TimetableSerializer):
                 "entryType": "Contribution",
                 "title": contribution.title,
                 "description": contribution.description,
-                "duration": contribution.duration_display.seconds / 60,
+                "duration": contribution.duration_display.seconds // 60,
                 "url": url_for("contributions.display_contribution", contribution),
-                "halfhour_span": math.ceil(
-                    contribution.duration_display.seconds / 1800
+                "timeunit_span": math.ceil(
+                    contribution.duration_display.seconds // 60 // self.granularity
                 ),
                 "location_data": {"room_name": "", "room_id": ""},
                 "abstract_score": (
@@ -190,23 +195,27 @@ class NGTimetableSerializer(TimetableSerializer):
         start_dt = start_dt.astimezone(tzinfo)
         end_dt = end_dt.astimezone(tzinfo)
 
-        halfhours = (
-            math.floor((60 * start_dt.hour + start_dt.minute) / 30)
-            - 2 * self._day_start_time
-            + 1
-            + (2 * self.hour_padding)
-        )
-        data["halfhour_start"] = halfhours
+        hour_padding_units = self.hour_padding * self.units_per_hour
+        day_start_units = self._day_start_time * self.units_per_hour
 
-        halfhours = (
-            math.ceil(
-                (60 * end_dt.hour + end_dt.minute) / 30
-            )  # half hours since beginning of day
-            - 2 * self._day_start_time  # remove half hours before the day started
-            + 1  # Add one since CSS is 1-based
-            + (2 * self.hour_padding)  # Add hour padding to the beginning/end
+        timeunits = (
+            (60 * start_dt.hour + start_dt.minute) // self.granularity
+            - day_start_units
+            + hour_padding_units
+            + 1
         )
-        data["halfhour_span"] = halfhours - data["halfhour_start"]
+        data["timeunit_start"] = timeunits
+
+        timeunits = (
+            math.ceil(
+                (60 * end_dt.hour + end_dt.minute) / self.granularity
+            )  # time units since beginning of day
+            - day_start_units  # remove time units before the day started
+            + hour_padding_units  # Add hour padding to the beginning/end
+            + 1  # Add one since CSS is 1-based
+        )
+
+        data["timeunit_span"] = timeunits - data["timeunit_start"]
 
         return data
 
@@ -267,7 +276,7 @@ class NGTimetableSerializer(TimetableSerializer):
         return {
             "entryType": "Subcontribution",
             "subcontributionId": subcontribution.id,
-            "duration": subcontribution.duration.total_seconds() / 60.0,
+            "duration": subcontribution.duration.total_seconds() // 60,
             "title": subcontribution.title,
             "description": subcontribution.description,
             "url": url_for("contributions.display_contribution", subcontribution),
