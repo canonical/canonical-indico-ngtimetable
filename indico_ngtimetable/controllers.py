@@ -101,7 +101,11 @@ class RNHGTimetableOperationsBase(RHManageEventBase):
             ).first_or_404()
             self.session = self.targetSessionTimetableEntry.session_block.session
 
-        tz = pytz.timezone(request.json["startDate"]["timezone"])
+        if "timezone" in request.json["startDate"]:
+            tz = pytz.timezone(request.json["startDate"]["timezone"])
+        else:
+            tz = self.event.tzinfo
+
         self.new_start_dt = tz.localize(
             dateutil.parser.parse("{date}T{time}".format(**request.json["startDate"]))
         ).astimezone(pytz.utc)
