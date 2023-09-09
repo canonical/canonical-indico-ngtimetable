@@ -9,6 +9,8 @@ const CONTRIBUTION_SELECTOR = ".timetable .contribution, .ngtimetable-unschedule
 
 let dragnode = null;
 let columnwidth = 0;
+let unitsPerHour = 0;
+let granularity = 0;
 let rowheight = 0;
 
 function dragStart(event) {
@@ -26,7 +28,7 @@ function dragEnd(event) {
   dragnode.style.opacity = 1;
 
   if (event.dataTransfer.dropEffect === "none") {
-    dragnode.style.gridColumnStart = `halfhour ${dragnode.dataset.halfhourStart}`;
+    dragnode.style.gridColumnStart = `timeunit ${dragnode.dataset.timeunitStart}`;
     dragnode.style.gridRowStart = `room ${dragnode.dataset.room}`;
     dragnode.style.color = dragnode.dataset.color;
     dragnode.style.backgroundColor = dragnode.dataset.backgroundColor;
@@ -71,7 +73,7 @@ function dragOver(event) {
   const [column, row] = getDragCell(droptarget, event.clientX, event.clientY);
 
   droptarget.appendChild(dragnode);
-  dragnode.style.gridColumnStart = `halfhour ${column + 1}`;
+  dragnode.style.gridColumnStart = `timeunit ${column + 1}`;
   dragnode.style.gridRowStart = `room ${row + 1}`;
 
   const duration = parseInt(dragnode.dataset.duration, 10);
@@ -97,12 +99,12 @@ function getContributionTimes(column, row, span = 0) {
   const timetable = dragnode.closest(".timetable");
   const session = dragnode.closest(".session");
 
-  let daystartHalfhour = 2 * parseInt(timetable.firstElementChild.dataset.hour, 10);
+  let daystartTimeunit = unitsPerHour * parseInt(timetable.firstElementChild.dataset.hour, 10);
   if (session) {
-    daystartHalfhour += parseInt(session.dataset.halfhourStart, 10) - 1;
+    daystartTimeunit += parseInt(session.dataset.timeunitStart, 10) - 1;
   }
 
-  let startMinute = (daystartHalfhour + column) * 30;
+  let startMinute = (daystartTimeunit + column) * granularity;
   let endMinute = startMinute + span;
 
   const startHour = Math.floor(startMinute / 60);
@@ -130,7 +132,7 @@ function dragDrop(event) {
   const timetable = dragnode.closest(".timetable");
   const datekey = timetable.dataset.date;
 
-  dragnode.dataset.halfhourStart = column + 1;
+  dragnode.dataset.timeunitStart = column + 1;
   dragnode.dataset.room = row + 1;
 
   const data = {
@@ -203,7 +205,10 @@ function dragSetup() {
   unscheduled.addEventListener("dragover", dragEnterUnscheduled);
   unscheduled.addEventListener("drop", dragDropUnscheduled);
 
-  columnwidth = Math.floor(document.querySelector(TIMESLOT_SELECTOR).offsetWidth / 2);
+  unitsPerHour = parseInt(document.querySelector(".ngtimetable").dataset.unitsPerHour, 10);
+  granularity = Math.floor(60 / unitsPerHour);
+
+  columnwidth = Math.floor(document.querySelector(TIMESLOT_SELECTOR).offsetWidth / unitsPerHour);
   rowheight = document.querySelector(ROOM_SELECTOR).offsetHeight;
 }
 

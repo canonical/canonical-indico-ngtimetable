@@ -130,7 +130,7 @@
     > .timetable {
       display: grid;
       grid-template-rows: [times] 40px  repeat(var(--rooms), [room] minmax(200px, 1fr));
-      grid-template-columns: repeat(var(--times), [halfhour] minmax(150px, 1fr));
+      grid-template-columns: repeat(var(--times), [timeunit] minmax(calc((100vw - 40px - 16px) / 6 / var(--units-per-hour) - 2px), 1fr));
       gap: 2px;
     }
   }
@@ -170,7 +170,7 @@
 .ngtimetable > .schedule > .timetable, .ngtimetable-unscheduled {
   > .timeslot {
     grid-row: 1;
-    grid-column: span 2;
+    grid-column: span var(--units-per-hour);
     padding: 8px;
     scroll-behavior: smooth;
     scroll-snap-align: start;
@@ -274,7 +274,7 @@
     > .contributions {
       flex: 1;
       display: grid;
-      grid-template-columns: repeat(var(--times), [halfhour] 1fr);
+      grid-template-columns: repeat(var(--times), [timeunit] 1fr);
       grid-template-rows: [room] 1fr;
       gap: 2px;
 
@@ -318,7 +318,7 @@
     min-height: 90vh;
 
     > .schedule > .timetable {
-      grid-template-columns: repeat(var(--times), [halfhour] minmax(calc(50vw - 40px - 2px + 10px), 1fr));
+      grid-template-columns: repeat(var(--times), [timeunit] calc((100vw - 40px - 16px) / var(--units-per-hour) - 2px));
 
       > .timeslot:not(:first-child) > .weekday {
         display: inline;

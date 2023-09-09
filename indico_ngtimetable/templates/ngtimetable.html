@@ -1,11 +1,11 @@
 {% from 'events/display/conference/_util.html' import format_event_date %}
 {% from 'events/contributions/management/_draft_mode_warning.html' import render_draft_mode_warning %}
 
-{% macro grid(halfhour, halfhour_span, room_index, room_span=1) %}
-  grid-row: room {{room_index|default(1)}} / span {{room_span|default(1)}}; grid-column: halfhour {{halfhour}} / span {{halfhour_span|default(1)}};
+{% macro grid(timeunit, timeunit_span, room_index, room_span=1) %}
+  grid-row: room {{room_index|default(1)}} / span {{room_span|default(1)}}; grid-column: timeunit {{timeunit}} / span {{timeunit_span|default(1)}};
 {% endmacro %}
 
-{% macro show_entry(entry, parent=None, halfhour_base=1) %}
+{% macro show_entry(entry, parent=None, timeunit_base=1) %}
   {% if entry.location_data and entry.location_data.room_name in rooms %}
     {% set room = rooms[entry.location_data.room_name] %}
     {% set room_index = room.index %}
@@ -21,9 +21,9 @@
                     entry.color|default('#f8f2e8') + " !important;" %}
   {% endif %}
 
-  {% set halfhour = entry.halfhour_start|default(1) - halfhour_base + 1 %}
+  {% set timeunit = entry.timeunit_start|default(1) - timeunit_base + 1 %}
 
-  {% if entry.entryType == "Contribution" and not entry.subcontributions and entry.halfhour_span > 0 %}
+  {% if entry.entryType == "Contribution" and not entry.subcontributions and entry.timeunit_span > 0 %}
     <a href="{{entry.url}}"
        class="contribution"
        {% if management %}
@@ -32,8 +32,8 @@
          data-contribution-id="{{entry.contributionId}}"
          data-color="{{entry.textColor|default('black')}}"
          data-background-color="{{entry.color|default('#f8f2e8')}}"
-         data-halfhour-start="{{halfhour}}"
-         data-halfhour-span="{{entry.halfhour_span}}"
+         data-timeunit-start="{{timeunit}}"
+         data-timeunit-span="{{entry.timeunit_span}}"
          {% if 'startDate' in entry %}
            data-start-time="{{entry.startDate.time[:5]}}"
          {% endif %}
@@ -52,7 +52,7 @@
     {% if entry.description %}
          title="{{entry.description|html_to_plaintext}}"
     {% endif %}
-         style="{{grid(halfhour, entry.halfhour_span, room_index)}} {{colors}}"
+         style="{{grid(timeunit, entry.timeunit_span, room_index)}} {{colors}}"
          target="_blank">
       <span class="title">{{entry.title}}</span>
       {% if entry.presenters %}
@@ -69,7 +69,7 @@
       </span>
       <span class="duration">{{entry.duration|int}}{% trans %}min{% endtrans %}</span>
     </a>
-  {% elif entry.entryType == "Contribution" and entry.subcontributions and entry.halfhour_span > 0 %}
+  {% elif entry.entryType == "Contribution" and entry.subcontributions and entry.timeunit_span > 0 %}
     <div class="contribution hassubcontributions"
          {% if management %}
            draggable="true"
@@ -77,8 +77,8 @@
            data-contribution-id="{{entry.contributionId}}"
            data-color="{{entry.textColor|default('black')}}"
            data-background-color="{{entry.color|default('#f8f2e8')}}"
-           data-halfhour-start="{{halfhour}}"
-           data-halfhour-span="{{entry.halfhour_span}}"
+           data-timeunit-start="{{timeunit}}"
+           data-timeunit-span="{{entry.timeunit_span}}"
            data-duration="{{entry.duration}}"
            {% if room is defined %}
              data-room-name="{{room.room_name}}"
@@ -86,7 +86,7 @@
              data-venue-id="{{room.venue_id}}"
            {% endif %}
          {% endif %}
-         style="{{grid(halfhour, entry.halfhour_span, room_index)}} {{colors}}">
+         style="{{grid(timeunit, entry.timeunit_span, room_index)}} {{colors}}">
       <span class="title">{{entry.title}}</span>
       <div class="subcontributions">
         {% for subcontrib in entry.subcontributions %}
@@ -119,7 +119,7 @@
          {% if entry.description %}
            title="{{entry.description|html_to_plaintext}}"
          {% endif %}
-           style="{{grid(halfhour, entry.halfhour_span, 1, rooms|length)}} {{ colors }}">
+           style="{{grid(timeunit, entry.timeunit_span, 1, rooms|length)}} {{ colors }}">
       <span class="title">
         {{entry.title}}
       </span>
@@ -132,8 +132,8 @@
          target="_blank"
          {% if management %}
            data-id="{{entry.scheduleEntryId}}"
-           data-halfhour-start="{{halfhour}}"
-           data-halfhour-span="{{entry.halfhour_span}}"
+           data-timeunit-start="{{timeunit}}"
+           data-timeunit-span="{{entry.timeunit_span}}"
            data-color="{{entry.textColor|default('black')}}"
            data-background-color="{{entry.color|default('#f8f2e8')}}"
            data-room-name="{{room.room_name}}"
@@ -141,7 +141,7 @@
            data-venue-id="{{room.venue_id}}"
          {% endif %}
          class="session {% if entry.entries|length == 0 %}nocontributions{% endif %}"
-         style="{{grid(halfhour, entry.halfhour_span, room_index)}} --times: {{entry.halfhour_span}};">
+         style="{{grid(timeunit, entry.timeunit_span, room_index)}} --times: {{entry.timeunit_span}};">
       <span
          class="title"
         {% if entry.description %}
@@ -151,7 +151,7 @@
          >{{entry.slotTitle|default(entry.title)}}</span>
       <div class="contributions">
         {% for skey, sentry in entry.entries.items() %}
-          {{show_entry(sentry, entry, entry.halfhour_start) }}
+          {{show_entry(sentry, entry, entry.timeunit_start) }}
         {% endfor %}
       </div>
     </div>
@@ -159,6 +159,7 @@
 {% endmacro %}
 
 {% set can_manage = event.can_manage(session.user) %}
+{% set units_per_hour = 60 // granularity %}
 
 <div id="confSectionsBox" class="conf_leftMenu" style="display: none"></div>
 <div class="ngtimetable-header confheader" style="{{ conf_layout_params.bg_color_css }} {{ conf_layout_params.text_color_css }}">
@@ -183,7 +184,10 @@
     {% endfor %}
   </div>
 {% endif %}
-<div class="ngtimetable" style="--rooms: {{rooms|length}};" {% if management %}data-management="true"{% endif %}>
+<div class="ngtimetable"
+     style="--rooms: {{rooms|length}}; --units-per-hour: {{units_per_hour}};"
+     data-units-per-hour="{{units_per_hour}}"
+     {% if management %}data-management="true"{% endif %}>
   {% if rooms.keys()|length > 1 %}
     <div class="rooms">
       {% if can_manage %}
@@ -205,7 +209,7 @@
   <div class="schedule">
   {% for date, daydata in timetable.items() %}
     <a class="daymarker" id="{{daydata.weekday|lower}}">{{daydata.weekday}}, {{(daydata.date|format_date(format='long'))[:-6]}}</a>
-    <div class="timetable" data-date="{{date}}" style="--times: {{2 * (daydata.day_end - daydata.day_start + 1)}}">
+    <div class="timetable" data-date="{{date}}" style="--times: {{units_per_hour * (daydata.day_end - daydata.day_start + 1)}}">
       {% for hour in range(daydata.day_start, daydata.day_end + 1) %}
         <div class="timeslot" data-hour="{{hour}}">
           <span class="weekday">{{daydata.weekday}}</span>
