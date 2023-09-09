@@ -1,6 +1,7 @@
 from indico.web.forms.base import IndicoForm
 from indico.web.forms.widgets import SwitchWidget
-from wtforms.fields import BooleanField, SelectField
+from wtforms.fields import BooleanField, IntegerField, SelectField
+from wtforms.widgets import NumberInput
 
 from . import _, ngettext
 
@@ -24,5 +25,13 @@ class NGTimetableSettingsForm(IndicoForm):
         ],
         description=_(
             "How granular is an hour slot? At 30 minutes, an hour slot can fit two contributions. This is used to maximize space in the timetable."
+        ),
+    )
+
+    hours_per_screen = IntegerField(
+        _("Hours on screen"),
+        widget=NumberInput(min=1, max=24),
+        description=_(
+            "How many hours to show at once (desktop). Adjust this to account for longer titles, but setting it too low will make it hard to get a big picture."
         ),
     )

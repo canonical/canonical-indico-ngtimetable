@@ -42,6 +42,9 @@ class RHNGTimetable(RHTimetableProtectionBase):
         use_track_colors = self.plugin.event_settings.get(
             self.event, "use_track_colors"
         )
+        hours_per_screen = self.plugin.event_settings.get(
+            self.event, "hours_per_screen"
+        )
 
         serializer = NGTimetableSerializer(
             self.event,
@@ -68,6 +71,7 @@ class RHNGTimetable(RHTimetableProtectionBase):
             rooms=serializer.room_map,
             published=published,
             granularity=granularity,
+            hours_per_screen=hours_per_screen,
         ).display()
 
 

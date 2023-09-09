@@ -21,7 +21,11 @@ class NGTimetablePlugin(IndicoPlugin):
     An opinionated timetable for open source tech conferences and beyond
     """
 
-    default_event_settings = {"granularity": 30, "use_track_colors": True}
+    default_event_settings = {
+        "granularity": 30,
+        "use_track_colors": True,
+        "hours_per_screen": 6,
+    }
 
     def init(self):
         super().init()

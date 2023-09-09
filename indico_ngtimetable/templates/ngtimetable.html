@@ -185,7 +185,7 @@
   </div>
 {% endif %}
 <div class="ngtimetable"
-     style="--rooms: {{rooms|length}}; --units-per-hour: {{units_per_hour}};"
+     style="--rooms: {{rooms|length}}; --units-per-hour: {{units_per_hour}}; --hours-per-screen: {{hours_per_screen}};"
      data-units-per-hour="{{units_per_hour}}"
      {% if management %}data-management="true"{% endif %}>
   {% if rooms.keys()|length > 1 %}
