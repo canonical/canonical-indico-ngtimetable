@@ -1,3 +1,4 @@
+import copy
 import math
 from datetime import datetime
 
@@ -35,13 +36,12 @@ class NGTimetableSerializer(TimetableSerializer):
             datetime.min.replace(year=datetime.min.year + 1)
         )
 
-    def _orig_serialize_timetable(
+    def serialize_timetable(
         self, days=None, hide_weekends=False, strip_empty_days=False, **kwargs
     ):
-        """
-        This is basically Indico's serialize_timetable, but I needed to add loading
-        subcontributions to the SQLalchemy loading strategy.
-        """
+        self._earliest_start = {}
+        self._latest_end = {}
+        self.room_map = {}
 
         tzinfo = self.event.tzinfo if self.management else self.event.display_tzinfo
         self.event.preload_all_acl_entries()
@@ -53,7 +53,13 @@ class NGTimetableSerializer(TimetableSerializer):
             day_whitelist=days,
         ):
             date_str = day.strftime("%Y%m%d")
-            timetable[date_str] = {}
+            timetable[date_str] = {
+                "weekday": _(day.strftime("%A")),
+                "date": day.date(),
+                "day_start": 0,
+                "day_end": 23,
+                "timetable": {},
+            }
 
         contributions_strategy = defaultload("contribution")
         contributions_strategy.subqueryload("person_links")
@@ -78,46 +84,71 @@ class NGTimetableSerializer(TimetableSerializer):
                 continue
             data = self.serialize_timetable_entry(entry, load_children=False)
             key = self._get_entry_key(entry)
+            end_dt_key = entry.end_dt.astimezone(tzinfo).date().strftime("%Y%m%d")
+            pastmidnight = (
+                entry.start_dt.astimezone(tzinfo).date()
+                != entry.end_dt.astimezone(tzinfo).date()
+            )
+            nextdaydata = (
+                self.split_entry_dayboundary(entry, data) if pastmidnight else None
+            )
+
             if entry.parent:
                 parent_code = f"s{entry.parent_id}"
-                timetable[date_str][parent_code]["entries"][key] = data
+                timetable[date_str]["timetable"][parent_code]["entries"][key] = data
+                if nextdaydata:
+                    timetable[end_dt_key]["timetable"][parent_code]["entries"][
+                        key
+                    ] = nextdaydata
             else:
-                if (
-                    entry.type == TimetableEntryType.SESSION_BLOCK
-                    and entry.start_dt.astimezone(tzinfo).date()
-                    != entry.end_dt.astimezone(tzinfo).date()
-                ):
-                    # If a session block lasts into another day we need to add it to that day, too
-                    timetable[
-                        entry.end_dt.astimezone(tzinfo).date().strftime("%Y%m%d")
-                    ][key] = data
-                timetable[date_str][key] = data
+                timetable[date_str]["timetable"][key] = data
+                if nextdaydata:
+                    timetable[end_dt_key]["timetable"][key] = nextdaydata
+
+        for key in timetable:
+            if key in self._earliest_start:
+                timetable[key]["day_start"] = max(
+                    0, self._earliest_start[key].time().hour - self.hour_padding
+                )
+            if key in self._latest_end:
+                timetable[key]["day_end"] = min(
+                    23, self._latest_end[key].time().hour + self.hour_padding
+                )
+
         if strip_empty_days:
             timetable = self._strip_empty_days(timetable)
+
         return timetable
 
-    def serialize_timetable(self, **kwargs):
-        self.room_map = {}
-        self._earliest_start = {}
-        self._latest_end = {}
+    def split_entry_dayboundary(self, entry, data):
+        # If an entry lasts into another day we need to add it to that day, too
+        tzinfo = self.event.tzinfo if self.management else self.event.display_tzinfo
+        start_dt_key = entry.start_dt.astimezone(tzinfo).date().strftime("%Y%m%d")
+        end_dt_key = entry.end_dt.astimezone(tzinfo).date().strftime("%Y%m%d")
+        end_dt = entry.end_dt.astimezone(tzinfo).date().strftime("%Y-%m-%d")
+        nextdaydata = copy.deepcopy(data)
 
-        data = self._orig_serialize_timetable(**kwargs)
+        # Adjust dates so it appears to go until the end of the day
+        units_per_day = 24 * self.units_per_hour
+        nextdayspan = data["timeunit_start"] + data["timeunit_span"] - units_per_day - 1
 
-        for key in data:
-            keydate = datetime.strptime(key, "%Y%m%d").date()
-            data[key] = {
-                "weekday": _(keydate.strftime("%A")),
-                "date": keydate,
-                "day_start": max(
-                    0, self._earliest_start[key].time().hour - self.hour_padding
-                ),
-                "day_end": min(
-                    23, self._latest_end[key].time().hour + self.hour_padding
-                ),
-                "timetable": data[key],
-            }
+        data["timeunit_span"] -= nextdayspan
+        data["endDate"]["time"] = "00:00:00"
+        data["startDate"]["date"] = end_dt
 
-        return data
+        nextdaydata["timeunit_span"] = nextdayspan
+        nextdaydata["timeunit_start"] = 1
+        nextdaydata["startDate"]["time"] = "00:00:00"
+        nextdaydata["startDate"]["date"] = end_dt
+
+        self._earliest_start[end_dt_key] = entry.end_dt.astimezone(tzinfo).replace(
+            hour=0, minute=0, second=0
+        )
+        self._latest_end[start_dt_key] = entry.start_dt.astimezone(tzinfo).replace(
+            hour=23, minute=59, second=59
+        )
+
+        return nextdaydata
 
     def serialize_unscheduled_contributions(self):
         query_options = (
@@ -219,10 +250,8 @@ class NGTimetableSerializer(TimetableSerializer):
         data["timeunit_start"] = (
             (60 * start_dt.hour + start_dt.minute) // self.granularity
         ) + 1
-        data["timeunit_span"] = (
-            math.ceil((60 * end_dt.hour + end_dt.minute) / self.granularity)
-            + 1
-            - data["timeunit_start"]
+        data["timeunit_span"] = math.ceil(
+            entry.duration.total_seconds() / 60 / self.granularity
         )
 
         self._update_day_range(entry)
