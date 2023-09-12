@@ -62,6 +62,11 @@ class RHNGTimetable(RHTimetableProtectionBase):
             else []
         )
 
+        for index, (key, __) in enumerate(
+            sorted(serializer.room_map.items(), key=lambda item: item[1]["capacity"])
+        ):
+            serializer.room_map[key]["index"] = index
+
         return WPNGTimetable(
             self,
             self.event,

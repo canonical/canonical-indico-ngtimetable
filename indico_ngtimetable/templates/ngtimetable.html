@@ -7,8 +7,7 @@
 
 {% macro show_entry(entry, parent=None, timeunit_base=1) %}
   {% if entry.location_data and entry.location_data.room_name in rooms %}
-    {% set room = rooms[entry.location_data.room_name] %}
-    {% set room_index = room.index %}
+    {% set room_index = rooms[entry.location_data.room_name].index %}
   {% endif %}
   {% if parent %}
     {% set room_index = 1 %}
@@ -41,11 +40,9 @@
            data-end-time="{{entry.endDate.time[:5]}}"
          {% endif %}
          data-duration="{{entry.duration}}"
-         {% if room is defined %}
-           data-room-name="{{room.room_name}}"
-           data-room-id="{{room.room_id}}"
-           data-venue-id="{{room.venue_id}}"
-         {% endif %}
+         data-room-name="{{entry.location_data.room_name|default("")}}"
+         data-room-id="{{entry.location_data.room_id|default("")}}"
+         data-venue-id="{{entry.location_data.venue_id|default("")}}"
        {% else %}
          draggable="false"
        {% endif %}
@@ -80,11 +77,9 @@
            data-timeunit-start="{{timeunit}}"
            data-timeunit-span="{{entry.timeunit_span}}"
            data-duration="{{entry.duration}}"
-           {% if room is defined %}
-             data-room-name="{{room.room_name}}"
-             data-room-id="{{room.room_id}}"
-             data-venue-id="{{room.venue_id}}"
-           {% endif %}
+           data-room-name="{{entry.location_data.room_name|default("")}}"
+           data-room-id="{{entry.location_data.room_id|default("")}}"
+           data-venue-id="{{entry.location_data.venue_id|default("")}}"
          {% endif %}
          style="{{grid(timeunit, entry.timeunit_span, room_index)}} {{colors}}">
       <span class="title">{{entry.title}}</span>
@@ -199,7 +194,7 @@
       {% else %}
         <div class="corner"></div>
       {% endif %}
-      {% for room_name, roomdata in rooms.items() %}
+      {% for room_name, roomdata in rooms.items()|sort(attribute='1.index') %}
         <div class="room"
              data-room-id="{{roomdata.room_id}}"
              data-venue-id="{{roomdata.venue_id}}">{{room_name}}</div>

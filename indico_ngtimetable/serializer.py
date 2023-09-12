@@ -215,7 +215,16 @@ class NGTimetableSerializer(TimetableSerializer):
 
     def _get_location_data(self, obj):
         data = {}
-        data["location_data"] = obj.widget_location_data
+
+        location_data = obj.location_data
+
+        data["location_data"] = {
+            "room_name": location_data["room_name"],
+            "room_id": location_data["room"].id if location_data["room"] else "",
+            "venue_name": location_data["venue_name"],
+            "venue_id": location_data["venue"].id if location_data["venue"] else "",
+            "capacity": location_data["room"].capacity if location_data["room"] else 0,
+        }
         return data
 
     def _update_day_range(self, entry):
@@ -264,9 +273,9 @@ class NGTimetableSerializer(TimetableSerializer):
         data.update(self._get_ng_entry_data(entry))
 
         if entry.session_block.room_name not in self.room_map:
-            room_data = entry.session_block.widget_location_data
-            room_data["index"] = len(self.room_map) + 1
-            self.room_map[entry.session_block.room_name] = room_data
+            self.room_map[entry.session_block.room_name] = self._get_location_data(
+                entry.session_block
+            )["location_data"]
 
         self._in_session_block = False
         return data
@@ -279,9 +288,9 @@ class NGTimetableSerializer(TimetableSerializer):
             # Force room to be the session block room
             data["location_data"] = {"inheriting": True}
         elif entry.contribution.room_name not in self.room_map:
-            room_data = entry.contribution.widget_location_data
-            room_data["index"] = len(self.room_map) + 1
-            self.room_map[entry.contribution.room_name] = room_data
+            self.room_map[entry.contribution.room_name] = self._get_location_data(
+                entry.contribution
+            )["location_data"]
 
         if (
             self.use_track_colors
