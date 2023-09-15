@@ -22,11 +22,12 @@
 
   {% set timeunit = entry.timeunit_start|default(1) - timeunit_base + 1 %}
 
-  {% if entry.entryType == "Contribution" and not entry.subcontributions and entry.timeunit_span > 0 %}
-    <a href="{{entry.url}}"
-       class="contribution"
+  {% if entry.entryType == "Contribution" and entry.timeunit_span > 0 %}
+    {% set tagtype = 'div' if entry.subcontributions else 'a' %}
+    <{{tagtype}} href="{{entry.url}}" class="contribution {% if entry.subcontributions %}hassubcontributions{% endif %}"
+       style="{{grid(timeunit, entry.timeunit_span, room_index)}} {{colors}}"
+       draggable="{%if management %}true{% else %}false{% endif %}"
        {% if management %}
-         draggable="true"
          data-id="{{entry.scheduleEntryId|default('')}}"
          data-contribution-id="{{entry.contributionId}}"
          data-color="{{entry.textColor|default('black')}}"
@@ -43,15 +44,19 @@
          data-room-name="{{entry.location_data.room_name|default("")}}"
          data-room-id="{{entry.location_data.room_id|default("")}}"
          data-venue-id="{{entry.location_data.venue_id|default("")}}"
-       {% else %}
-         draggable="false"
        {% endif %}
-    {% if entry.description %}
+       {% if entry.description and not entry.subcontributions %}
          title="{{entry.description|html_to_plaintext}}"
-    {% endif %}
-         style="{{grid(timeunit, entry.timeunit_span, room_index)}} {{colors}}"
-         target="_blank">
+       {% endif %}
+       target="_blank">
       <span class="title">{{entry.title}}</span>
+      {% if entry.subcontributions %}
+        <div class="subcontributions">
+          {% for subcontrib in entry.subcontributions %}
+            {{show_entry(subcontrib, entry)}}
+          {% endfor %}
+        </div>
+      {% endif %}
       {% if entry.presenters %}
         <span class="authors">
           {{entry.presenters[0].name}}{% if entry.presenters|length > 1 %} {% trans %}et al{% endtrans %}{% endif %}
@@ -65,38 +70,7 @@
         </span>
       </span>
       <span class="duration">{{entry.duration|int}}{% trans %}min{% endtrans %}</span>
-    </a>
-  {% elif entry.entryType == "Contribution" and entry.subcontributions and entry.timeunit_span > 0 %}
-    <div class="contribution hassubcontributions"
-         {% if management %}
-           draggable="true"
-           data-id="{{entry.scheduleEntryId|default('')}}"
-           data-contribution-id="{{entry.contributionId}}"
-           data-color="{{entry.textColor|default('black')}}"
-           data-background-color="{{entry.color|default('#f8f2e8')}}"
-           data-timeunit-start="{{timeunit}}"
-           data-timeunit-span="{{entry.timeunit_span}}"
-           data-duration="{{entry.duration}}"
-           data-room-name="{{entry.location_data.room_name|default("")}}"
-           data-room-id="{{entry.location_data.room_id|default("")}}"
-           data-venue-id="{{entry.location_data.venue_id|default("")}}"
-         {% endif %}
-         style="{{grid(timeunit, entry.timeunit_span, room_index)}} {{colors}}">
-      <span class="title">{{entry.title}}</span>
-      <div class="subcontributions">
-        {% for subcontrib in entry.subcontributions %}
-          {{show_entry(subcontrib, entry)}}
-        {% endfor %}
-      </div>
-      <span class="time">
-        <span class="starttime">
-          {%- if entry.startDate is defined %}{{entry.startDate.time[:5]}}{% endif -%}
-        </span>–<span class="endtime">
-          {%- if entry.endDate is defined %}{{entry.endDate.time[:5]}}{% endif -%}
-        </span>
-      </span>
-      <span class="duration">{{entry.duration|int}}{% trans %}min{% endtrans %}</span>
-    </div>
+     </{{tagtype}}>
   {% elif entry.entryType == "Subcontribution" %}
     <a href="{{entry.url}}"
        data-id="{{entry.subcontributionId}}"
