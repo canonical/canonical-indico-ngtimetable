@@ -48,6 +48,9 @@
        {% if entry.description and not entry.subcontributions %}
          title="{{entry.description|html_to_plaintext}}"
        {% endif %}
+       {% if entry.subcontributions %}
+         onclick='window.open("{{entry.url}}", "_blank")'
+       {% endif %}
        target="_blank">
       <span class="title">{{entry.title}}</span>
       {% if entry.subcontributions %}
