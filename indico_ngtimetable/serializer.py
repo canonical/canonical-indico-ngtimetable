@@ -313,7 +313,7 @@ class NGTimetableSerializer(TimetableSerializer):
             "duration": subcontribution.duration.total_seconds() // 60,
             "title": subcontribution.title,
             "description": subcontribution.description,
-            "url": url_for("contributions.display_contribution", subcontribution),
+            "url": url_for("contributions.display_subcontribution", subcontribution),
         }
 
     def serialize_break_entry(self, entry, management=False):

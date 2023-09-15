@@ -131,9 +131,9 @@
            data-timeunit-span="{{entry.timeunit_span}}"
            data-color="{{entry.textColor|default('black')}}"
            data-background-color="{{entry.color|default('#f8f2e8')}}"
-           data-room-name="{{room.room_name}}"
-           data-room-id="{{room.room_id}}"
-           data-venue-id="{{room.venue_id}}"
+           data-room-name="{{entry.location_data.room_name|default("")}}"
+           data-room-id="{{entry.location_data.room_id|default("")}}"
+           data-venue-id="{{entry.location_data.venue_id|default("")}}"
          {% endif %}
          class="session {% if entry.entries|length == 0 %}nocontributions{% endif %}"
          style="{{grid(timeunit, entry.timeunit_span, room_index)}} --times: {{entry.timeunit_span}};">
