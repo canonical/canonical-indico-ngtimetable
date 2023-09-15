@@ -227,6 +227,10 @@
       display: none;
     }
 
+    &.hassubcontributions {
+      cursor: pointer;
+    }
+
     &:not(.hassubcontributions) > .title {
       flex: 1;
     }
