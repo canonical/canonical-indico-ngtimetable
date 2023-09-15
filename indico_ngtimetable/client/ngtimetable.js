@@ -18,6 +18,9 @@ function dragStart(event) {
   event.dataTransfer.effectAllowed = "move";
   event.dataTransfer.setDragImage(document.getElementById("dragcanvas"), 0, 0);
 
+  columnwidth = Math.floor(document.querySelector(TIMESLOT_SELECTOR).offsetWidth / unitsPerHour);
+  rowheight = document.querySelector(ROOM_SELECTOR).offsetHeight;
+
   event.target.style.opacity = 0.4;
 
   dragnode = event.target;
@@ -208,9 +211,6 @@ function dragSetup() {
 
   unitsPerHour = parseInt(document.querySelector(".ngtimetable").dataset.unitsPerHour, 10);
   granularity = Math.floor(60 / unitsPerHour);
-
-  columnwidth = Math.floor(document.querySelector(TIMESLOT_SELECTOR).offsetWidth / unitsPerHour);
-  rowheight = document.querySelector(ROOM_SELECTOR).offsetHeight;
 }
 
 window.addEventListener("load", dragSetup, { once: true });
