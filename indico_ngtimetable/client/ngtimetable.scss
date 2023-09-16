@@ -20,6 +20,15 @@
   height: 1px;
 }
 
+#dragsource {
+  &:not(.dragging) {
+    display: none;
+  }
+
+  border: 3px dashed gray;
+  margin: 5px;
+}
+
 .ngtimetable-header {
   min-height: 190px !important;
 
@@ -210,10 +219,15 @@
   }
 
   .contribution {
-    z-index: 3;
     padding: 8px;
     border: 1px solid grey;
     background: #f8f2e8;
+
+    &.dragging {
+      opacity: 0.4;
+      pointer-events: none;
+      z-index: 1444 !important;
+    }
 
     > .title {
       font-weight: bold;

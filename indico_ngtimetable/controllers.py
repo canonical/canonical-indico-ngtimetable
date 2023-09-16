@@ -142,6 +142,9 @@ class RHNGTimetableMove(RNHGTimetableOperationsBase):
     POST_JSON_SCHEMA = {
         "type": "object",
         "properties": {
+            "swapWith": {
+                "anyOf": [{"type": "integer", "minimum": 0}, {"type": "null"}]
+            },
             "session": {"anyOf": [{"type": "integer", "minimum": 0}, {"type": "null"}]},
             "locationData": {
                 "anyOf": [
@@ -152,6 +155,8 @@ class RHNGTimetableMove(RNHGTimetableOperationsBase):
                             "room_id": {"type": "integer", "minimum": 1},
                             "venue_id": {"type": "integer", "minimum": 1},
                         },
+                        "additionalProperties": False,
+                        "required": ["inheriting", "room_id", "venue_id"],
                     },
                     {
                         "type": "object",
@@ -159,6 +164,8 @@ class RHNGTimetableMove(RNHGTimetableOperationsBase):
                             "inheriting": {"type": "boolean"},
                             "room_name": {"type": "string"},
                         },
+                        "additionalProperties": False,
+                        "required": ["inheriting", "room_name"],
                     },
                 ]
             },
@@ -169,8 +176,12 @@ class RHNGTimetableMove(RNHGTimetableOperationsBase):
                     "time": {"type": "string", "format": "time"},
                     "timezone": {"type": "string"},
                 },
+                "additionalProperties": False,
+                "required": ["date", "time"],
             },
         },
+        "required": ["locationData", "startDate"],
+        "additionalProperties": False,
     }
 
     def _process_args(self):
@@ -178,23 +189,54 @@ class RHNGTimetableMove(RNHGTimetableOperationsBase):
         self.validate_json(RHNGTimetableMove.POST_JSON_SCHEMA)
 
         self.entry = None
+        self.swapEntry = None
         if "entry_id" in request.view_args:
             self.entry = self.event.timetable_entries.filter_by(
                 id=request.view_args["entry_id"]
             ).first_or_404()
             self.contribution = self.entry.contribution
+        if request.json.get("swapWith", None):
+            self.swapEntry = self.event.timetable_entries.filter_by(
+                id=request.json["swapWith"]
+            ).first_or_404()
 
     def _process_POST(self):
-        tt_updates = {
-            "parent": self.targetSessionTimetableEntry,
-            "start_dt": self.new_start_dt,
-        }
-
         with (
             track_time_changes(auto_extend=True, user=session.user),
             track_location_changes(),
         ):
-            update_timetable_entry(self.entry, tt_updates)
+            if self.swapEntry:
+                swapParent = None
+                if self.entry.session_block:
+                    swapParent = self.event.timetable_entries.filter_by(
+                        id=self.entry.session_block.session.id
+                    ).first_or_404()
+
+                update_timetable_entry(
+                    self.swapEntry,
+                    {
+                        "start_dt": self.entry.contribution.start_dt,
+                        "parent": swapParent,
+                    },
+                )
+                update_contribution(
+                    self.swapEntry.contribution,
+                    {
+                        "location_data": self.entry.contribution.location_data,
+                        "session_block": self.entry.session_block,
+                        "session": self.entry.session_block.session
+                        if self.entry.session_block
+                        else None,
+                    },
+                )
+
+            update_timetable_entry(
+                self.entry,
+                {
+                    "parent": self.targetSessionTimetableEntry,
+                    "start_dt": self.new_start_dt,
+                },
+            )
             update_contribution(self.contribution, self.contrib_updates)
 
         return jsonify_data(flash=False)

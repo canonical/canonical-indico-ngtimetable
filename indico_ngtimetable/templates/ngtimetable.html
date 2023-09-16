@@ -8,6 +8,8 @@
 {% macro show_entry(entry, parent=None, timeunit_base=1) %}
   {% if entry.location_data and entry.location_data.room_name in rooms %}
     {% set room_index = rooms[entry.location_data.room_name].index %}
+  {% else %}
+    {% set room_index = 1 %}
   {% endif %}
   {% if parent %}
     {% set room_index = 1 %}
@@ -24,8 +26,9 @@
 
   {% if entry.entryType == "Contribution" and entry.timeunit_span > 0 %}
     {% set tagtype = 'div' if entry.subcontributions else 'a' %}
+    {% set zindex = 3 + 1440 - entry.duration|int %}
     <{{tagtype}} href="{{entry.url}}" class="contribution {% if entry.subcontributions %}hassubcontributions{% endif %}"
-       style="{{grid(timeunit, entry.timeunit_span, room_index)}} {{colors}}"
+       style="{{grid(timeunit, entry.timeunit_span, room_index)}} {{colors}} z-index: {{zindex}}"
        draggable="{%if management %}true{% else %}false{% endif %}"
        {% if management %}
          data-id="{{entry.scheduleEntryId|default('')}}"
@@ -40,7 +43,8 @@
          {% if 'endDate' in entry %}
            data-end-time="{{entry.endDate.time[:5]}}"
          {% endif %}
-         data-duration="{{entry.duration}}"
+         data-duration="{{entry.duration|int}}"
+         data-room-index="{{room_index}}"
          data-room-name="{{entry.location_data.room_name|default("")}}"
          data-room-id="{{entry.location_data.room_id|default("")}}"
          data-venue-id="{{entry.location_data.venue_id|default("")}}"
@@ -108,6 +112,7 @@
            data-timeunit-span="{{entry.timeunit_span}}"
            data-color="{{entry.textColor|default('black')}}"
            data-background-color="{{entry.color|default('#f8f2e8')}}"
+           data-room-index="{{room_index}}"
            data-room-name="{{entry.location_data.room_name|default("")}}"
            data-room-id="{{entry.location_data.room_id|default("")}}"
            data-venue-id="{{entry.location_data.venue_id|default("")}}"
@@ -181,7 +186,8 @@
   <div class="schedule">
   {% for date, daydata in timetable.items() %}
     <a class="daymarker" id="{{daydata.weekday|lower}}">{{daydata.weekday}}, {{(daydata.date|format_date(format='long'))[:-6]}}</a>
-    <div class="timetable" data-date="{{date}}" style="--times: {{units_per_hour * (daydata.day_end - daydata.day_start + 1)}}">
+    {% set times = units_per_hour * (daydata.day_end - daydata.day_start + 1) %}
+    <div class="timetable" data-date="{{date}}" data-times="{{times}}" style="--times: {{times}}">
       {% for hour in range(daydata.day_start, daydata.day_end + 1) %}
         <div class="timeslot" data-hour="{{hour}}">
           <span class="weekday">{{daydata.weekday}}</span>
@@ -196,3 +202,4 @@
   </div>
 </div>
 <canvas id="dragcanvas" width="1" height="1"></canvas>
+<div id="dragsource"></div>

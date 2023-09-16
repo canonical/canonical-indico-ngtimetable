@@ -8,10 +8,12 @@ const ROOM_SELECTOR = ".ngtimetable > .rooms > .room";
 const CONTRIBUTION_SELECTOR = ".timetable .contribution, .ngtimetable-unscheduled .contribution";
 
 let dragnode = null;
+let swapnode = null;
 let columnwidth = 0;
 let unitsPerHour = 0;
 let granularity = 0;
 let rowheight = 0;
+let maxRooms = 0;
 
 function dragStart(event) {
   event.dataTransfer.setData("text/plain", "hello");
@@ -20,19 +22,29 @@ function dragStart(event) {
 
   columnwidth = Math.floor(document.querySelector(TIMESLOT_SELECTOR).offsetWidth / unitsPerHour);
   rowheight = document.querySelector(ROOM_SELECTOR).offsetHeight;
-
-  event.target.style.opacity = 0.4;
+  maxRooms = document.querySelectorAll(".room").length - 1;
 
   dragnode = event.target;
+  dragnode.classList.add("dragging");
   dragnode._originalParent = dragnode.parentNode;
+
+  if (!dragnode.parentNode.classList.contains("ngtimetable-unscheduled")) {
+    const dragsource = dragnode.parentNode.appendChild(document.getElementById("dragsource"));
+    dragsource.style.gridColumn = dragnode.style.gridColumn;
+    dragsource.style.gridRow = dragnode.style.gridRow;
+    dragsource.classList.add("dragging");
+  }
+
+  const container = dragnode.closest(".session, .timetable");
+  if (container) {
+    dragnode._originalPosition = getDragCell(container, dragnode, event.clientX, event.clientY);
+  }
 }
 
 function dragEnd(event) {
-  dragnode.style.opacity = 1;
-
   if (event.dataTransfer.dropEffect === "none") {
     dragnode.style.gridColumnStart = `timeunit ${dragnode.dataset.timeunitStart}`;
-    dragnode.style.gridRowStart = `room ${dragnode.dataset.room}`;
+    dragnode.style.gridRowStart = `room ${dragnode.dataset.roomIndex}`;
     dragnode.style.color = dragnode.dataset.color;
     dragnode.style.backgroundColor = dragnode.dataset.backgroundColor;
     dragnode.querySelector(".starttime").textContent = dragnode.dataset.startTime;
@@ -40,19 +52,35 @@ function dragEnd(event) {
 
     dragnode._originalParent.appendChild(dragnode);
   }
+
+  if (swapnode) {
+    swapnode.classList.remove("dragging");
+    swapnode._originalParent = null;
+    swapnode._originalPosition = null;
+    swapnode = null;
+  }
+
+  dragnode.classList.remove("dragging");
   dragnode._originalParent = null;
+  dragnode._originalPosition = null;
   dragnode = null;
+
+  const dragsource = document.getElementById("dragsource");
+  dragsource.classList.remove("dragging");
 }
 
-function getDragCell(target, clientX, clientY) {
+function getDragCell(target, node, clientX, clientY) {
   const currentRect = target.getBoundingClientRect();
   const x = clientX - currentRect.left;
   const y = clientY - currentRect.top;
 
-  const column = Math.floor(x / columnwidth);
-  const row = Math.floor(y / rowheight);
+  const span = parseInt(node.dataset.timeunitSpan, 10);
+  const maxUnits = parseInt(target.closest(".timetable").dataset.times, 10) - span;
 
-  return [column, row];
+  const column = Math.min(maxUnits, Math.floor(x / columnwidth));
+  const row = Math.min(maxRooms, Math.floor(y / rowheight));
+
+  return [column + 1, row + 1];
 }
 
 function dragOver(event) {
@@ -73,19 +101,65 @@ function dragOver(event) {
     dragnode.style.backgroundColor = dragnode.dataset.backgroundColor;
   }
 
-  const [column, row] = getDragCell(droptarget, event.clientX, event.clientY);
+  const [column, row] = getDragCell(droptarget, dragnode, event.clientX, event.clientY);
+
+  if (dragnode._originalPosition) {
+    const hoverNode = document
+      .elementFromPoint(event.clientX, event.clientY)
+      .closest(".contribution");
+    const [swapCol, swapRow] = swapnode?._originalPosition ?? [];
+    const isWithin =
+      swapnode &&
+      column >= swapCol &&
+      column <= swapCol + parseInt(swapnode.dataset.timeunitSpan, 10) &&
+      swapRow === row;
+
+    if (event.shiftKey && swapnode && !isWithin) {
+      clearSwapNode();
+    }
+
+    if (event.shiftKey && !swapnode) {
+      swapnode = hoverNode;
+      if (swapnode) {
+        swapnode._originalPosition = [
+          parseInt(swapnode.dataset.timeunitStart, 10),
+          parseInt(swapnode.dataset.roomIndex, 10),
+        ];
+        swapnode._originalParent = swapnode.parentNode;
+        swapnode.classList.add("dragging");
+
+        updateContributionForCell(swapnode, ...dragnode._originalPosition);
+        dragnode._originalParent.appendChild(swapnode);
+      }
+    } else if (!event.shiftKey && swapnode) {
+      clearSwapNode();
+    }
+  }
 
   droptarget.appendChild(dragnode);
-  dragnode.style.gridColumnStart = `timeunit ${column + 1}`;
-  dragnode.style.gridRowStart = `room ${row + 1}`;
-
-  const duration = parseInt(dragnode.dataset.duration, 10);
-  const { startTime, endTime } = getContributionTimes(column, row, duration);
-
-  dragnode.querySelector(".starttime").textContent = startTime.substring(0, 5);
-  dragnode.querySelector(".endtime").textContent = endTime.substring(0, 5);
+  updateContributionForCell(dragnode, column, row);
 
   event.dataTransfer.dropEffect = "move";
+}
+
+function clearSwapNode() {
+  updateContributionForCell(swapnode, ...swapnode._originalPosition);
+  swapnode._originalParent.appendChild(swapnode);
+  swapnode._originalParent = null;
+  swapnode._originalPosition = null;
+  swapnode.classList.remove("dragging");
+  swapnode = null;
+}
+
+function updateContributionForCell(node, column, row) {
+  const duration = parseInt(node.dataset.duration, 10);
+  const { startTime, endTime } = getContributionTimes(column, duration);
+
+  node.querySelector(".starttime").textContent = startTime.substring(0, 5);
+  node.querySelector(".endtime").textContent = endTime.substring(0, 5);
+
+  node.style.gridColumnStart = `timeunit ${column}`;
+  node.style.gridRowStart = `room ${row}`;
 }
 
 function dragEnterUnscheduled(event) {
@@ -98,7 +172,7 @@ function dragEnterUnscheduled(event) {
   dragnode.scrollIntoView({ block: "nearest", behavior: "smooth" });
 }
 
-function getContributionTimes(column, row, span = 0) {
+function getContributionTimes(column, span = 0) {
   const timetable = dragnode.closest(".timetable");
   const session = dragnode.closest(".session");
 
@@ -107,7 +181,7 @@ function getContributionTimes(column, row, span = 0) {
     daystartTimeunit += parseInt(session.dataset.timeunitStart, 10) - 1;
   }
 
-  let startMinute = (daystartTimeunit + column) * granularity;
+  let startMinute = (daystartTimeunit + column - 1) * granularity;
   let endMinute = startMinute + span;
 
   const startHour = Math.floor(startMinute / 60);
@@ -131,18 +205,18 @@ function dragDrop(event) {
   event.preventDefault();
   event.stopPropagation();
 
-  const [column, row] = getDragCell(event.currentTarget, event.clientX, event.clientY);
+  const [column, row] = getDragCell(event.currentTarget, dragnode, event.clientX, event.clientY);
   const timetable = dragnode.closest(".timetable");
   const datekey = timetable.dataset.date;
 
-  dragnode.dataset.timeunitStart = column + 1;
-  dragnode.dataset.room = row + 1;
+  dragnode.dataset.timeunitStart = column;
+  dragnode.dataset.roomIndex = row;
 
   const data = {
     session: null,
     startDate: {
       date: `${datekey.substring(0, 4)}-${datekey.substring(4, 6)}-${datekey.substring(6, 8)}`,
-      time: getContributionTimes(column, row).startTime,
+      time: getContributionTimes(column).startTime,
       timezone: document.getElementById("tz-selector-link").textContent,
     },
     locationData: {
@@ -150,12 +224,16 @@ function dragDrop(event) {
     },
   };
 
+  if (event.shiftKey && swapnode) {
+    data.swapWith = parseInt(swapnode.dataset.id, 10);
+  }
+
   const session = dragnode.closest(".session");
   if (session) {
     data.session = parseInt(session.dataset.id, 10);
     data.locationData.inheriting = true;
   } else {
-    const roomNode = [...document.querySelectorAll(".rooms .room")][dragnode.dataset.room - 1];
+    const roomNode = [...document.querySelectorAll(".rooms .room")][dragnode.dataset.roomIndex - 1];
     if (roomNode.dataset.roomId) {
       data.locationData.room_id = parseInt(roomNode.dataset.roomId, 10);
       data.locationData.venue_id = parseInt(roomNode.dataset.venueId, 10);
@@ -182,12 +260,14 @@ function dragDrop(event) {
 function dragDropUnscheduled(event) {
   event.preventDefault();
 
-  if (dragnode.dataset.id) {
+  const thisdragnode = dragnode;
+
+  if (thisdragnode.dataset.id) {
     const url = new URL(
       `../manage/timetable/entry/${dragnode.dataset.id}/delete`,
       window.location.href,
     );
-    indicoAxios.post(url.toString()).then(() => delete dragnode.dataset.id, handleAxiosError);
+    indicoAxios.post(url.toString()).then(() => delete thisdragnode.dataset.id, handleAxiosError);
   }
 }
 
