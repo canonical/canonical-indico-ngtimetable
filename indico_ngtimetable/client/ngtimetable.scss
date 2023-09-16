@@ -29,6 +29,82 @@
   margin: 5px;
 }
 
+.menu {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  > .menu-checkbox {
+    display: none;
+
+    &:checked + .menu-label + .menu-content {
+      display: block;
+    }
+  }
+
+  > .menu-label {
+    cursor: pointer;
+  }
+
+  > .menu-content {
+    display: none;
+    position: absolute;
+    min-width: 21em;
+    top: 100%;
+    left: 2px;
+    z-index: 2000;
+    background-color: white;
+    border: 1px solid #ccc;
+
+    > .menu-item[class*=" icon-"], > .menu-item[class^="icon-"] {
+      position: relative;
+      padding: 2px 25px;
+      display: block;
+    }
+
+    > .menu-item[class*=" icon-"]::before, > .menu-item[class^="icon-"]::before {
+      width: 20px;
+      text-align: center;
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    > .track {
+      display: block;
+      padding: 5px;
+      position: relative;
+
+      > .track-input {
+        display: none;
+      }
+
+      > .track-label {
+        display: block;
+        padding: 0 20px;
+        width: 100%;
+
+      }
+
+      > .track-label::before {
+        content: "";
+        width: 20px;
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        text-align: center;
+      }
+
+      > .track-input:checked + .track-label::before {
+        content: "\e372";
+      }
+    }
+  }
+}
+
+
 .ngtimetable-header {
   min-height: 190px !important;
 
@@ -72,7 +148,6 @@
     grid-area: rooms;
     display: grid;
     grid-template-rows: [empty] 40px repeat(var(--rooms), [room] 1fr);
-    text-transform: uppercase;
     gap: 2px;
 
     > .corner {
@@ -95,6 +170,7 @@
 
     > .room {
       writing-mode: vertical-rl;
+      text-transform: uppercase;
       display: flex;
       align-items: center;
       justify-content: center;

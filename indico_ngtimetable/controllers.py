@@ -46,10 +46,15 @@ class RHNGTimetable(RHTimetableProtectionBase):
             self.event, "hours_per_screen"
         )
 
+        excludeRooms = set()
+        if "excludeRooms" in request.args:
+            excludeRooms = set(request.args["excludeRooms"].split(","))
+
         serializer = NGTimetableSerializer(
             self.event,
             use_track_colors=use_track_colors,
             granularity=granularity,
+            excludeRooms=excludeRooms,
             management=self.__class__.MANAGEMENT,
         )
         timetable = serializer.serialize_timetable(strip_empty_days=True)
@@ -74,6 +79,7 @@ class RHNGTimetable(RHTimetableProtectionBase):
             unscheduled=unscheduled,
             timetable=timetable,
             rooms=serializer.room_map,
+            tracks=list(serializer.tracks),
             published=published,
             granularity=granularity,
             hours_per_screen=hours_per_screen,

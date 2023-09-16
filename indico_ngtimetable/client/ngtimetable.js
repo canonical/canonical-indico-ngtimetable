@@ -17,6 +17,8 @@ let granularity = 0;
 let rowheight = 0;
 let maxRooms = 0;
 
+let trackSheet = null;
+
 function dragStart(event) {
   event.dataTransfer.setData("text/plain", "hello");
   event.dataTransfer.effectAllowed = "move";
@@ -313,4 +315,37 @@ function dragSetup() {
   granularity = Math.floor(60 / unitsPerHour);
 }
 
+function changeTrackCheckbox(event) {
+  const trackId = event.target.dataset.trackId;
+  const schedule = document.querySelector(".schedule");
+
+  if (event.target.checked) {
+    delete schedule.dataset[`track${trackId}Hidden`];
+  } else {
+    schedule.dataset[`track${trackId}Hidden`] = true;
+  }
+}
+
+function trackSetup() {
+  document.querySelector(".menu > .menu-content").addEventListener("change", changeTrackCheckbox);
+
+  trackSheet = document.createElement("style");
+  trackSheet.id = "trackRules";
+  document.head.appendChild(trackSheet);
+
+  const tracks = document.querySelectorAll(".menu-content > .track");
+  for (const track of tracks) {
+    const trackId = track.dataset.trackId;
+    const rule = `
+      .schedule[data-track${trackId}-hidden] .contribution[data-track-id="${trackId}"] {
+        display: none;
+      }
+    `;
+    console.log(rule);
+    trackSheet.sheet.insertRule(rule, 0);
+    changeTrackCheckbox({ target: track.querySelector("input") });
+  }
+}
+
 window.addEventListener("load", dragSetup, { once: true });
+window.addEventListener("DOMContentLoaded", trackSetup, { once: true });
