@@ -6,6 +6,8 @@ const SESSIONTABLE_SELECTOR =
 const TIMESLOT_SELECTOR = ".ngtimetable > .schedule > .timetable > .timeslot";
 const ROOM_SELECTOR = ".ngtimetable > .rooms > .room";
 const CONTRIBUTION_SELECTOR = ".timetable .contribution, .ngtimetable-unscheduled .contribution";
+const SCROLL_BORDER = 125;
+const SCROLL_SPEED = 2;
 
 let dragnode = null;
 let swapnode = null;
@@ -34,6 +36,7 @@ function dragStart(event) {
     dragsource.style.gridRow = dragnode.style.gridRow;
     dragsource.classList.add("dragging");
   }
+  dragnode.closest(".schedule")?.classList.add("dragging");
 
   const container = dragnode.closest(".session, .timetable");
   if (container) {
@@ -59,6 +62,8 @@ function dragEnd(event) {
     swapnode._originalPosition = null;
     swapnode = null;
   }
+
+  dragnode.closest(".schedule")?.classList.remove("dragging");
 
   dragnode.classList.remove("dragging");
   dragnode._originalParent = null;
@@ -102,6 +107,21 @@ function dragOver(event) {
   }
 
   const [column, row] = getDragCell(droptarget, dragnode, event.clientX, event.clientY);
+
+  // Accelerate scrolling at the edges of the schedule element
+  const schedule = droptarget.closest(".schedule");
+  const scheduleRect = schedule?.getBoundingClientRect();
+  if (schedule && event.clientX - scheduleRect.left < SCROLL_BORDER) {
+    schedule.scrollBy({
+      left: -SCROLL_SPEED * (SCROLL_BORDER - event.clientX),
+      behavior: "smooth",
+    });
+  } else if (schedule && event.clientX + SCROLL_BORDER > scheduleRect.right) {
+    schedule.scrollBy({
+      left: SCROLL_SPEED * (SCROLL_BORDER - (scheduleRect.right - event.clientX)),
+      behavior: "smooth",
+    });
+  }
 
   if (dragnode._originalPosition) {
     const hoverNode = document
