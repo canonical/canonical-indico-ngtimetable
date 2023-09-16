@@ -16,14 +16,30 @@ from sqlalchemy.orm import defaultload
 from . import _
 
 
+class NoTrack:
+    def __init__(self):
+        self.default_session = {"background_color": "f8f2e8", "text_color": "000000"}
+        self.id = 0
+        self.title = "(No Track)"
+
+
 class NGTimetableSerializer(TimetableSerializer):
     def __init__(
-        self, *args, hour_padding=1, granularity=30, use_track_colors=True, **kwargs
+        self,
+        *args,
+        hour_padding=1,
+        granularity=30,
+        use_track_colors=True,
+        excludeRooms=set(),
+        **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self.hour_padding = hour_padding
         self.use_track_colors = use_track_colors
         self._in_session_block = False
+        self.tracks = set()
+        self.noTrack = NoTrack()
+        self.excludeRooms = excludeRooms
 
         self.granularity = granularity
         self.units_per_hour = 60 // self.granularity
@@ -83,6 +99,8 @@ class NGTimetableSerializer(TimetableSerializer):
             if not entry.can_view(self.user):
                 continue
             data = self.serialize_timetable_entry(entry, load_children=False)
+            if data["location_data"]["room_name"] in self.excludeRooms:
+                continue
             key = self._get_entry_key(entry)
             end_dt_key = entry.end_dt.astimezone(tzinfo).date().strftime("%Y%m%d")
             pastmidnight = (
@@ -272,10 +290,11 @@ class NGTimetableSerializer(TimetableSerializer):
         data = super().serialize_session_block_entry(entry, load_children)
         data.update(self._get_ng_entry_data(entry))
 
-        if entry.session_block.room_name not in self.room_map:
-            self.room_map[entry.session_block.room_name] = self._get_location_data(
-                entry.session_block
-            )["location_data"]
+        room_name = entry.session_block.room_name
+        if room_name not in self.excludeRooms and room_name not in self.room_map:
+            self.room_map[room_name] = self._get_location_data(entry.session_block)[
+                "location_data"
+            ]
 
         self._in_session_block = False
         return data
@@ -283,14 +302,21 @@ class NGTimetableSerializer(TimetableSerializer):
     def serialize_contribution_entry(self, entry):
         data = super().serialize_contribution_entry(entry)
         data.update(self._get_ng_entry_data(entry))
+        if entry.contribution.track:
+            data["trackId"] = entry.contribution.track.id
+            self.tracks.add(entry.contribution.track)
+        else:
+            data["trackId"] = 0
+            self.tracks.add(self.noTrack)
 
+        room_name = entry.contribution.room_name
         if self._in_session_block:
             # Force room to be the session block room
             data["location_data"] = {"inheriting": True}
-        elif entry.contribution.room_name not in self.room_map:
-            self.room_map[entry.contribution.room_name] = self._get_location_data(
-                entry.contribution
-            )["location_data"]
+        elif room_name not in self.excludeRooms and room_name not in self.room_map:
+            self.room_map[room_name] = self._get_location_data(entry.contribution)[
+                "location_data"
+            ]
 
         if (
             self.use_track_colors
