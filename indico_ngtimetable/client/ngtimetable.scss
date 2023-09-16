@@ -116,6 +116,10 @@
     overflow-x: auto;
     scroll-snap-type: x proximity;
 
+    &.dragging {
+      scroll-snap-type: none;
+    }
+
     > .daymarker {
       writing-mode: vertical-rl;
       scroll-behavior: smooth;
