@@ -326,7 +326,7 @@ function changeTrackCheckbox(event) {
   }
 }
 
-function trackSetup() {
+function menuSetup() {
   document.querySelector(".menu > .menu-content").addEventListener("change", changeTrackCheckbox);
 
   trackSheet = document.createElement("style");
@@ -344,7 +344,14 @@ function trackSetup() {
     trackSheet.sheet.insertRule(rule, 0);
     changeTrackCheckbox({ target: track.querySelector("input") });
   }
+
+  const density = document.getElementById("density");
+  const ngtimetable = document.querySelector(".ngtimetable");
+  density.addEventListener("input", (event) => {
+    ngtimetable.style.setProperty("--density", event.target.value);
+  });
+  ngtimetable.style.setProperty("--density", density.value);
 }
 
 window.addEventListener("load", dragSetup, { once: true });
-window.addEventListener("DOMContentLoaded", trackSetup, { once: true });
+window.addEventListener("DOMContentLoaded", menuSetup, { once: true });
