@@ -2,7 +2,11 @@
 {% from 'events/contributions/management/_draft_mode_warning.html' import render_draft_mode_warning %}
 
 {% macro grid(timeunit, timeunit_span, room_index, room_span=1) %}
-  grid-row: room {{room_index|default(1)}} / span {{room_span|default(1)}}; grid-column: timeunit {{timeunit}} / span {{timeunit_span|default(1)}};
+  {% if orientation == "vertical" %}
+    grid-column: room {{room_index|default(1)}} / span {{room_span|default(1)}}; grid-row: timeunit {{timeunit}} / span {{timeunit_span|default(1)}};
+  {% else %}
+    grid-row: room {{room_index|default(1)}} / span {{room_span|default(1)}}; grid-column: timeunit {{timeunit}} / span {{timeunit_span|default(1)}};
+  {% endif %}
 {% endmacro %}
 
 {% macro show_entry(entry, parent=None, timeunit_base=1) %}
@@ -137,6 +141,7 @@
 {% endmacro %}
 
 {% set units_per_hour = 60 // granularity %}
+{% set otherorientation = "vertical" if orientation == "horizontal" else "horizontal" %}
 
 <div id="confSectionsBox" class="conf_leftMenu" style="display: none"></div>
 <div class="ngtimetable-header confheader" style="{{ conf_layout_params.bg_color_css }} {{ conf_layout_params.text_color_css }}">
@@ -161,37 +166,38 @@
     {% endfor %}
   </div>
 {% endif %}
-<div class="ngtimetable"
-     style="--rooms: {{rooms|length}}; --units-per-hour: {{units_per_hour}}; --hours-per-screen: {{hours_per_screen}};"
+<div class="ngtimetable {{orientation}}"
+     style="--rooms: {{rooms|length}}; --units-per-hour: {{units_per_hour}};"
      data-units-per-hour="{{units_per_hour}}"
      {% if management %}data-management="true"{% endif %}>
-  <div class="rooms">
-    <div class="corner menu">
-      <input type="checkbox" autocomplete="off" id="menu-toggle" class="menu-checkbox">
-      <label for="menu-toggle" class="icon-dropmenu menu-label"></label>
-      <div class="menu-content">
-        {% for track in tracks|sort(attribute='id') %}
-          <div class="menu-item track" style="background-color: #{{track.default_session.background_color}} !important; color: #{{track.default_session.text_color}} !important;" data-track-id="{{track.id}}">
-            <input type="checkbox" autocomplete="off" checked="checked" data-track-id="{{track.id}}" id="track-{{track.id}}" class="track-input">
-            <label for="track-{{track.id}}" class="track-label icon-" >{{track.title}}</label>
-          </div>
-        {% endfor %}
-        {% if event.can_manage(session.user) %}
-          {% if management %}
-            <a class="menu-item icon-cross" href="{{url_for_plugin('ngtimetable.view', event)}}">{% trans %}Back to display view{% endtrans %}</a>
-          {% else %}
-            <a class="menu-item icon-wrench" href="{{url_for_plugin('ngtimetable.manage', event)}}">{% trans %}Manage timetable{% endtrans %}</a>
+  <div class="schedule">
+    <div class="rooms">
+      <div class="corner menu">
+        <input type="checkbox" autocomplete="off" id="menu-toggle" class="menu-checkbox">
+        <label for="menu-toggle" class="icon-dropmenu menu-label"></label>
+        <div class="menu-content">
+          {% for track in tracks|sort(attribute='id') %}
+            <div class="menu-item track" style="background-color: #{{track.default_session.background_color}} !important; color: #{{track.default_session.text_color}} !important;" data-track-id="{{track.id}}">
+              <input type="checkbox" autocomplete="off" checked="checked" data-track-id="{{track.id}}" id="track-{{track.id}}" class="track-input">
+              <label for="track-{{track.id}}" class="track-label icon-" >{{track.title}}</label>
+            </div>
+          {% endfor %}
+          <a class="menu-item change-orientation icon-loop" href="?orientation={{otherorientation}}">{% trans %}Change orientation{% endtrans %}</a>
+          {% if event.can_manage(session.user) %}
+            {% if management %}
+              <a class="menu-item icon-cross" href="{{url_for_plugin('ngtimetable.view', event)}}">{% trans %}Back to display view{% endtrans %}</a>
+            {% else %}
+              <a class="menu-item icon-wrench" href="{{url_for_plugin('ngtimetable.manage', event)}}">{% trans %}Manage timetable{% endtrans %}</a>
+            {% endif %}
           {% endif %}
-        {% endif %}
+        </div>
       </div>
-    </div>
     {% for room_name, roomdata in rooms.items()|sort(attribute='1.index') %}
       <div class="room"
            data-room-id="{{roomdata.room_id}}"
            data-venue-id="{{roomdata.venue_id}}">{{room_name}}</div>
     {% endfor %}
   </div>
-  <div class="schedule">
   {% for date, daydata in timetable.items() %}
     <a class="daymarker" id="{{daydata.weekday|lower}}">{{daydata.weekday}}, {{(daydata.date|format_date(format='long'))[:-6]}}</a>
     {% set times = units_per_hour * (daydata.day_end - daydata.day_start + 1) %}

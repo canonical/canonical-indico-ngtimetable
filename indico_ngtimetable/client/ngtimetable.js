@@ -4,7 +4,7 @@ const SESSIONTABLE_SELECTOR =
   ".ngtimetable > .schedule > .timetable, .ngtimetable > .schedule > .timetable > .session," +
   ".ngtimetable > .schedule > .timetable > .break";
 const TIMESLOT_SELECTOR = ".ngtimetable > .schedule > .timetable > .timeslot";
-const ROOM_SELECTOR = ".ngtimetable > .rooms > .room";
+const ROOM_SELECTOR = ".ngtimetable > .schedule > .rooms > .room";
 const CONTRIBUTION_SELECTOR = ".timetable .contribution, .ngtimetable-unscheduled .contribution";
 const SCROLL_BORDER = 125;
 const SCROLL_SPEED = 2;
@@ -341,7 +341,6 @@ function trackSetup() {
         display: none;
       }
     `;
-    console.log(rule);
     trackSheet.sheet.insertRule(rule, 0);
     changeTrackCheckbox({ target: track.querySelector("input") });
   }
