@@ -42,9 +42,7 @@ class RHNGTimetable(RHTimetableProtectionBase):
         use_track_colors = self.plugin.event_settings.get(
             self.event, "use_track_colors"
         )
-        hours_per_screen = self.plugin.event_settings.get(
-            self.event, "hours_per_screen"
-        )
+        orientation = self.plugin.event_settings.get(self.event, "orientation")
 
         excludeRooms = set()
         if "excludeRooms" in request.args:
@@ -72,6 +70,12 @@ class RHNGTimetable(RHTimetableProtectionBase):
         ):
             serializer.room_map[key]["index"] = index + 1
 
+        if "orientation" in request.args and request.args["orientation"] in (
+            "horizontal",
+            "vertical",
+        ):
+            orientation = request.args["orientation"]
+
         return WPNGTimetable(
             self,
             self.event,
@@ -81,8 +85,8 @@ class RHNGTimetable(RHTimetableProtectionBase):
             rooms=serializer.room_map,
             tracks=list(serializer.tracks),
             published=published,
+            orientation=orientation,
             granularity=granularity,
-            hours_per_screen=hours_per_screen,
         ).display()
 
 

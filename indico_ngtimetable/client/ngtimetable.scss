@@ -3,6 +3,8 @@
   height: 100%;
   display: flex;
   flex-direction: column;
+
+  --header-size: 190px;
 }
 
 #draft-mode-warning {
@@ -33,6 +35,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
+  position: relative;
 
   > .menu-checkbox {
     display: none;
@@ -54,16 +57,31 @@
     left: 2px;
     z-index: 2000;
     background-color: white;
-    border: 1px solid #ccc;
+    border: 1px solid gray;
+    box-shadow: 2px 2px 3px gray;
+
+    > .menu-item {
+      border-bottom: 1px solid gray;
+      color: inherit;
+
+      &:last-child {
+        border-bottom: 0;
+      }
+
+      &:hover {
+        text-decoration: none;
+        color: #1e70bf;
+      }
+    }
 
     > .menu-item[class*=" icon-"], > .menu-item[class^="icon-"] {
       position: relative;
-      padding: 2px 25px;
+      padding: 5px 25px;
       display: block;
     }
 
     > .menu-item[class*=" icon-"]::before, > .menu-item[class^="icon-"]::before {
-      width: 20px;
+      width: 25px;
       text-align: center;
       position: absolute;
       left: 0;
@@ -84,12 +102,12 @@
         display: block;
         padding: 0 20px;
         width: 100%;
-
+        cursor: pointer;
       }
 
       > .track-label::before {
         content: "";
-        width: 20px;
+        width: 25px;
         position: absolute;
         left: 0;
         top: 50%;
@@ -106,7 +124,8 @@
 
 
 .ngtimetable-header {
-  min-height: 190px !important;
+  min-height: var(--header-size) !important;
+  height: var(--header-size) !important;
 
   > .back {
     margin: 0 15px;
@@ -137,89 +156,79 @@
   }
 }
 
+.notsupportedwarning {
+  display: none;
+}
+
 .ngtimetable {
-  min-height: 70vh;
   display: flex;
-  flex-direction: row;
-  column-gap: 2px;
   background: white;
 
-  > .rooms {
-    grid-area: rooms;
-    display: grid;
-    grid-template-rows: [empty] 40px repeat(var(--rooms), [room] 1fr);
-    gap: 2px;
-
-    > .corner {
-      border: 1px solid grey;
-      border-width: 0 1px 1px 0;
-    }
-
-    > a.corner {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      color: black;
-      text-decoration: none;
-
-      &:hover {
-        color: #00a4e4;
-      }
-    }
-
-
-    > .room {
-      writing-mode: vertical-rl;
-      text-transform: uppercase;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 40px;
-      height: 100%;
-      border: 1px solid grey;
-      border-width: 1px 1px 1px 0;
-
-      &:first-child {
-        border-top-width: 0;
-      }
-    }
-  }
 
   > .schedule {
     flex: 1;
     display: flex;
-    flex-direction: row;
-    overflow-x: auto;
-    scroll-snap-type: x proximity;
 
     &.dragging {
       scroll-snap-type: none;
     }
 
+    > .rooms {
+      display: grid;
+      background: white;
+      position: sticky;
+      z-index: 1446;
+      gap: 2px;
+
+      &::before {
+        content: "";
+        position: absolute;
+      }
+
+      > .corner {
+        border: 1px solid grey;
+        border-width: 0 1px 1px 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        color: black;
+        text-decoration: none;
+
+        &:hover {
+          color: #00a4e4;
+        }
+      }
+
+
+      > .room {
+        text-transform: uppercase;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid grey;
+        background: white;
+
+      }
+    }
+
     > .daymarker {
-      writing-mode: vertical-rl;
       scroll-behavior: smooth;
       scroll-snap-align: start;
       font-size: 1.5rem;
       text-align: center;
-      padding: 40px 5px 0;
-      margin: 0 2px;
       border: 1px solid grey;
-      border-top-width: 0;
       line-height: normal;
       text-decoration: inherit;
       color: inherit;
       cursor: default;
+      background: white;
+      position: sticky;
+      z-index: 1445;
 
-      &:first-child {
-        margin-left: 0;
-      }
     }
 
     > .timetable {
       display: grid;
-      grid-template-rows: [times] 40px  repeat(var(--rooms), [room] minmax(200px, 1fr));
-      grid-template-columns: repeat(var(--times), [timeunit] minmax(calc((100vw - 40px - 16px) / var(--hours-per-screen) / var(--units-per-hour) - 2px), 1fr));
       gap: 2px;
     }
   }
@@ -258,13 +267,13 @@
 
 .ngtimetable > .schedule > .timetable, .ngtimetable-unscheduled {
   > .timeslot {
-    grid-row: 1;
-    grid-column: span var(--units-per-hour);
     padding: 8px;
     scroll-behavior: smooth;
     scroll-snap-align: start;
+    background: white;
     border: 1px solid grey;
-    border-top: 0;
+    position: sticky;
+    z-index: 1444;
 
     &:not(:first-child) > .weekday {
       display: none;
@@ -293,7 +302,6 @@
     > .title {
       flex: 1;
       font-size: 2.5rem;
-      writing-mode: vertical-rl;
       text-align: center;
     }
   }
@@ -356,9 +364,7 @@
 
     > .title {
       font-weight: bold;
-      padding: 2px 8px;
       border: 1px solid grey;
-      margin-bottom: 2px;
 
       &:empty {
         display: none;
@@ -372,8 +378,6 @@
     > .contributions {
       flex: 1;
       display: grid;
-      grid-template-columns: repeat(var(--times), [timeunit] 1fr);
-      grid-template-rows: [room] 1fr;
       gap: 2px;
 
       > .contribution {
@@ -384,7 +388,195 @@
   }
 }
 
+.ngtimetable.horizontal {
+  --rooms-per-screen: min(var(--rooms), 4);
+  --hours-per-screen: 6;
+
+  flex-direction: row;
+  min-height: 70vh;
+  column-gap: 2px;
+
+  > .schedule {
+    flex-direction: row;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+
+    > .rooms {
+      grid-template-rows: [empty] 40px repeat(var(--rooms), [room] calc((100vh - var(--header-size) - 40px - 14px) / var(--rooms-per-screen)));
+      height: calc(var(--rooms) * (100% - 40px - 16px) / var(--rooms-per-screen));
+      left: 0;
+
+      &::before {
+        top: 0;
+        right: -2px;
+        height: 100%;
+        border-right: 2px solid white;
+      }
+
+      > .room {
+        writing-mode: vertical-rl;
+        width: 40px;
+        height: 100%;
+        border-width: 1px 1px 1px 0;
+
+        &:first-child {
+          border-top-width: 0;
+        }
+      }
+    }
+
+    > .daymarker {
+      writing-mode: vertical-rl;
+      padding: 40px 5px 0;
+      border-top-width: 0;
+      margin: 0 2px;
+      left: 42px;
+
+      &:first-child {
+        margin-left: 0;
+      }
+    }
+
+    > .timetable {
+      grid-template-rows: [times] 40px repeat(var(--rooms), [room] calc((100vh - var(--header-size) - 40px - 14px) / var(--rooms-per-screen)));
+      grid-template-columns: repeat(var(--times), [timeunit] minmax(calc((100vw - 40px - 16px) / var(--hours-per-screen) / var(--units-per-hour) - 2px), 1fr));
+
+      > .timeslot {
+        grid-row: 1;
+        grid-column: span var(--units-per-hour);
+        border-top-width: 0;
+        top: 0;
+      }
+
+      > .break {
+        > .title {
+          writing-mode: vertical-rl;
+        }
+      }
+
+      > .session {
+        > .contributions {
+          grid-template-columns: repeat(var(--times), [timeunit] 1fr);
+          grid-template-rows: [room] 1fr;
+        }
+
+        > .title {
+          padding: 2px 8px;
+          margin-bottom: 2px;
+        }
+      }
+    }
+  }
+}
+
+.ngtimetable.vertical {
+  --rooms-per-screen: min(var(--rooms), 6);
+  --hours-per-screen: 4;
+
+  flex-direction: column;
+  max-height: 100vh;
+  row-gap: 2px;
+
+  > .schedule {
+    flex-direction: column;
+    overflow-y: auto;
+    scroll-snap-type: y proximity;
+
+    > .rooms {
+      grid-template-columns: [empty] 40px repeat(var(--rooms), [room] calc((100vw - 40px - 16px) / var(--rooms-per-screen)));
+      top: 0;
+      width: calc(40px + (var(--rooms) * (100vw - 40px - 16px) / var(--rooms-per-screen)));
+
+      &::before {
+        bottom: -2px;
+        left: 0;
+        right: 0;
+        border-bottom: 2px solid white;
+      }
+
+      > .room {
+        width: 100%;
+        height: 40px;
+        border-width: 0 1px 1px;
+
+        &:last-child {
+          border-width: 0 0 1px 1px;
+        }
+      }
+    }
+
+    > .daymarker {
+      padding: 5px 0 5px 40px;
+      border-width: 1px 0;
+      margin: 2px 0;
+      top: 42px;
+      left: 0;
+
+      &:first-child {
+        margin-top: 0;
+      }
+    }
+
+    > .timetable {
+      grid-template-columns: [times] 40px repeat(var(--rooms), [room] calc((100vw - 40px - 16px) / var(--rooms-per-screen)));
+      grid-template-rows: repeat(var(--times), [timeunit] minmax(calc((100vh - 40px - 16px) / var(--hours-per-screen) / var(--units-per-hour) - 2px), 1fr));
+
+      > .timeslot {
+        grid-column: 1;
+        grid-row: span var(--units-per-hour);
+        writing-mode: vertical-rl;
+        left: 0;
+      }
+
+      > .break > .title {
+        display: flex;
+        align-items: center;
+      }
+
+      > .session {
+        flex-direction: row;
+
+        > .contributions {
+          grid-template-rows: repeat(var(--times), [timeunit] 1fr);
+          grid-template-columns: [room] 1fr;
+        }
+
+        > .title {
+          padding: 8px 2px;
+          margin-block-start: 2px;
+          writing-mode: vertical-rl;
+        }
+      }
+    }
+  }
+}
+
+/* Adjust available boxes based on width */
 @media only screen and (max-width: 1250px) {
+  .ngtimetable {
+    &.horizontal {
+      --hours-per-screen: 3;
+    }
+
+    &.vertical {
+      --rooms-per-screen: min(var(--rooms), 4);
+    }
+  }
+}
+
+@media only screen and (max-width: 992px) {
+  .ngtimetable {
+    &.horizontal {
+      --hours-per-screen: 2;
+    }
+
+    &.vertical {
+      --rooms-per-screen: min(var(--rooms), 3);
+    }
+  }
+}
+
+@media only screen and (max-width: 768px) {
   .main-action-bar {
     flex-flow: wrap-reverse;
     height: 70px;
@@ -394,11 +586,36 @@
     }
   }
 
+  .ngtimetable {
+    &.horizontal {
+      --hours-per-screen: 2;
+    }
+
+    &.vertical {
+      --rooms-per-screen: min(var(--rooms), 2);
+    }
+  }
+}
+
+@media only screen and (max-width: 550px) {
+  .ngtimetable {
+    &.horizontal {
+      --hours-per-screen: 1;
+    }
+
+    &.vertical {
+      --rooms-per-screen: 1;
+    }
+  }
+}
+
+/* Adjust available boxes based on height */
+@media only screen and (max-height: 1250px) {
+  .main > div {
+    --header-size: 130px;
+  }
+
   .ngtimetable-header {
-    height: 130px !important;
-    min-height: 130px !important;
-
-
     > .back {
       font-size: 1.0rem;
 
@@ -413,20 +630,48 @@
   }
 
   .ngtimetable {
-    min-height: 90vh;
+    &.horizontal {
+      --rooms-per-screen: min(var(--rooms), 4);
+    }
 
-    > .schedule > .timetable {
-      grid-template-columns: repeat(var(--times), [timeunit] calc((100vw - 40px - 16px) / (var(--hours-per-screen) / 2)  / var(--units-per-hour) - 2px));
-
-      > .timeslot:not(:first-child) > .weekday {
-        display: inline;
-      }
+    &.vertical {
+      --hours-per-screen: 3;
     }
   }
 }
 
-@media only screen and (max-width: 550px) {
-  .ngtimetable > .schedule > .timetable {
-      grid-template-columns: repeat(var(--times), [timeunit] calc((100vw - 40px - 16px) / var(--units-per-hour) - 2px));
+@media only screen and (max-height: 992px) {
+  .ngtimetable {
+    &.horizontal {
+      --rooms-per-screen: min(var(--rooms), 3);
+    }
+
+    &.vertical {
+      --hours-per-screen: 2;
+    }
+  }
+}
+
+@media only screen and (max-height: 768px) {
+  .ngtimetable {
+    &.horizontal {
+      --rooms-per-screen: min(var(--rooms), 2);
+    }
+
+    &.vertical {
+      --hours-per-screen: 2;
+    }
+  }
+}
+
+@media only screen and (max-height: 550px) {
+  .ngtimetable {
+    &.horizontal {
+      --rooms-per-screen: 1
+    }
+
+    &.vertical {
+      --hours-per-screen: 1;
+    }
   }
 }

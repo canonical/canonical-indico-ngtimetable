@@ -24,7 +24,7 @@ class NGTimetablePlugin(IndicoPlugin):
     default_event_settings = {
         "granularity": 30,
         "use_track_colors": True,
-        "hours_per_screen": 6,
+        "orientation": "horizontal",
     }
 
     def init(self):
