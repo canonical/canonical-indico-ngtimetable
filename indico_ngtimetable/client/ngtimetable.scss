@@ -180,6 +180,9 @@
 }
 
 .ngtimetable {
+  --clamped-rooms-per-screen: max(1, min(var(--rooms), calc(var(--rooms-per-screen) * var(--density, 1))));
+  --clamped-hours-per-screen: max(1, calc(var(--hours-per-screen) * var(--density, 1)));
+
   display: flex;
   background: white;
 
@@ -408,8 +411,8 @@
 }
 
 .ngtimetable.horizontal {
-  --rooms-per-screen: max(1, min(var(--rooms), calc(4 * var(--density, 1))));
-  --hours-per-screen: max(1, calc(6 * var(--density, 1)));
+  --rooms-per-screen: 4;
+  --hours-per-screen: 6;
 
   flex-direction: row;
   min-height: 70vh;
@@ -421,8 +424,8 @@
     scroll-snap-type: x proximity;
 
     > .rooms {
-      grid-template-rows: [empty] 40px repeat(var(--rooms), [room] calc((100vh - var(--header-size) - 40px - 14px) / var(--rooms-per-screen)));
-      height: calc(var(--rooms) * (100% - 40px - 16px) / var(--rooms-per-screen));
+      grid-template-rows: [empty] 40px repeat(var(--rooms), [room] calc((100vh - var(--header-size) - 40px - 14px) / var(--clamped-rooms-per-screen)));
+      height: calc(var(--rooms) * (100% - 40px - 16px) / var(--clamped-rooms-per-screen));
       left: 0;
 
       &::before {
@@ -457,8 +460,8 @@
     }
 
     > .timetable {
-      grid-template-rows: [times] 40px repeat(var(--rooms), [room] calc((100vh - var(--header-size) - 40px - 14px) / var(--rooms-per-screen)));
-      grid-template-columns: repeat(var(--times), [timeunit] minmax(calc((100vw - 40px - 16px) / var(--hours-per-screen) / var(--units-per-hour) - 2px), 1fr));
+      grid-template-rows: [times] 40px repeat(var(--rooms), [room] calc((100vh - var(--header-size) - 40px - 14px) / var(--clamped-rooms-per-screen)));
+      grid-template-columns: repeat(var(--times), [timeunit] minmax(calc((100vw - 40px - 16px) / var(--clamped-hours-per-screen) / var(--units-per-hour) - 2px), 1fr));
 
       > .timeslot {
         grid-row: 1;
@@ -489,8 +492,8 @@
 }
 
 .ngtimetable.vertical {
-  --rooms-per-screen: max(1, min(var(--rooms), calc(6 * var(--density, 1))));
-  --hours-per-screen: max(1, calc(4 * var(--density, 1)));
+  --rooms-per-screen: 6;
+  --hours-per-screen: 4;
 
   flex-direction: column;
   max-height: 100vh;
@@ -502,9 +505,9 @@
     scroll-snap-type: y proximity;
 
     > .rooms {
-      grid-template-columns: [empty] 40px repeat(var(--rooms), [room] calc((100vw - 40px - 16px) / var(--rooms-per-screen)));
+      grid-template-columns: [empty] 40px repeat(var(--rooms), [room] calc((100vw - 40px - 16px) / var(--clamped-rooms-per-screen)));
       top: 0;
-      width: calc(40px + (var(--rooms) * (100vw - 40px - 16px) / var(--rooms-per-screen)));
+      width: calc(40px + (var(--rooms) * (100vw - 40px - 16px) / var(--clamped-rooms-per-screen)));
 
       &::before {
         bottom: -2px;
@@ -537,8 +540,8 @@
     }
 
     > .timetable {
-      grid-template-columns: [times] 40px repeat(var(--rooms), [room] calc((100vw - 40px - 16px) / var(--rooms-per-screen)));
-      grid-template-rows: repeat(var(--times), [timeunit] minmax(calc((100vh - 40px - 16px) / var(--hours-per-screen) / var(--units-per-hour) - 2px), 1fr));
+      grid-template-columns: [times] 40px repeat(var(--rooms), [room] calc((100vw - 40px - 16px) / var(--clamped-rooms-per-screen)));
+      grid-template-rows: repeat(var(--times), [timeunit] minmax(calc((100vh - 40px - 16px) / var(--clamped-hours-per-screen) / var(--units-per-hour) - 2px), 1fr));
 
       > .timeslot {
         grid-column: 1;
@@ -572,26 +575,22 @@
 
 /* Adjust available boxes based on width */
 @media only screen and (max-width: 1250px) {
-  .ngtimetable {
-    &.horizontal {
-      --hours-per-screen: calc(3 * var(--density, 1));
-    }
+  .ngtimetable.horizontal {
+    --hours-per-screen: 3;
+  }
 
-    &.vertical {
-      --rooms-per-screen: max(1, min(var(--rooms), calc(4 * var(--density, 1))));
-    }
+  .ngtimetable.vertical {
+    --rooms-per-screen: 4;
   }
 }
 
 @media only screen and (max-width: 992px) {
-  .ngtimetable {
-    &.horizontal {
-      --hours-per-screen: calc(2 * var(--density, 1));
-    }
+  .ngtimetable.horizontal {
+    --hours-per-screen: 2;
+  }
 
-    &.vertical {
-      --rooms-per-screen: max(1, min(var(--rooms), calc(3 * var(--density, 1))));
-    }
+  .ngtimetable.vertical {
+    --rooms-per-screen: 3;
   }
 }
 
@@ -605,26 +604,22 @@
     }
   }
 
-  .ngtimetable {
-    &.horizontal {
-      --hours-per-screen: calc(2 * var(--density, 1));
-    }
+  .ngtimetable.horizontal {
+    --hours-per-screen: 2;
+  }
 
-    &.vertical {
-      --rooms-per-screen: max(1, min(var(--rooms), calc(2 * var(--density, 1))));
-    }
+  .ngtimetable.vertical {
+    --rooms-per-screen: 2;
   }
 }
 
 @media only screen and (max-width: 550px) {
-  .ngtimetable {
-    &.horizontal {
-      --hours-per-screen: calc(1 * var(--density, 1));
-    }
+  .ngtimetable.horizontal {
+    --hours-per-screen: 1;
+  }
 
-    &.vertical {
-      --rooms-per-screen: max(1, min(var(--rooms), calc(1 * var(--density, 1))));
-    }
+  .ngtimetable.vertical {
+    --rooms-per-screen: 1;
   }
 }
 
@@ -648,49 +643,41 @@
     }
   }
 
-  .ngtimetable {
-    &.horizontal {
-      --rooms-per-screen: min(var(--rooms), 4);
-    }
+  .ngtimetable.horizontal {
+    --rooms-per-screen: 4;
+  }
 
-    &.vertical {
-      --hours-per-screen: 3;
-    }
+  .ngtimetable.vertical {
+    --hours-per-screen: 3;
   }
 }
 
 @media only screen and (max-height: 992px) {
-  .ngtimetable {
-    &.horizontal {
-      --rooms-per-screen: min(var(--rooms), 3);
-    }
+  .ngtimetable.horizontal {
+    --rooms-per-screen: 3;
+  }
 
-    &.vertical {
-      --hours-per-screen: 2;
-    }
+  .ngtimetable.vertical {
+    --hours-per-screen: 2;
   }
 }
 
 @media only screen and (max-height: 768px) {
-  .ngtimetable {
-    &.horizontal {
-      --rooms-per-screen: min(var(--rooms), 2);
-    }
+  .ngtimetable.horizontal {
+    --rooms-per-screen: 2;
+  }
 
-    &.vertical {
-      --hours-per-screen: 2;
-    }
+  .ngtimetable.vertical {
+    --hours-per-screen: 2;
   }
 }
 
 @media only screen and (max-height: 550px) {
-  .ngtimetable {
-    &.horizontal {
-      --rooms-per-screen: 1
-    }
+  .ngtimetable.horizontal {
+    --rooms-per-screen: 1;
+  }
 
-    &.vertical {
-      --hours-per-screen: 1;
-    }
+  .ngtimetable.vertical {
+    --hours-per-screen: 1;
   }
 }
