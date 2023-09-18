@@ -176,12 +176,17 @@
         <input type="checkbox" autocomplete="off" id="menu-toggle" class="menu-checkbox">
         <label for="menu-toggle" class="icon-dropmenu menu-label"></label>
         <div class="menu-content">
-          {% for track in tracks|sort(attribute='id') %}
-            <div class="menu-item track" style="background-color: #{{track.default_session.background_color}} !important; color: #{{track.default_session.text_color}} !important;" data-track-id="{{track.id}}">
-              <input type="checkbox" autocomplete="off" checked="checked" data-track-id="{{track.id}}" id="track-{{track.id}}" class="track-input">
-              <label for="track-{{track.id}}" class="track-label icon-" >{{track.title}}</label>
+          <div class="menu-item icon-eye track-selector">
+            <span class="title">{% trans %}Visible Tracks{% endtrans %}</span>
+            <div class="track-list">
+              {% for track in tracks|sort(attribute='id') %}
+                <div class="track" style="background-color: #{{track.default_session.background_color}} !important; color: #{{track.default_session.text_color}} !important;" data-track-id="{{track.id}}">
+                  <input type="checkbox" autocomplete="off" checked="checked" data-track-id="{{track.id}}" id="track-{{track.id}}" class="track-input">
+                  <label for="track-{{track.id}}" class="track-label icon-" >{{track.title}}</label>
+                </div>
+              {% endfor %}
             </div>
-          {% endfor %}
+          </div>
           <a class="menu-item change-orientation icon-loop" href="?orientation={{otherorientation}}">{% trans %}Change orientation{% endtrans %}</a>
           <div class="menu-item density-item">
             <label for="density">{% trans %}Zoom{% endtrans %}</label>

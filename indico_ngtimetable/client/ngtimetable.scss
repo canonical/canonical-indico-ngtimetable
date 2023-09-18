@@ -64,6 +64,7 @@
       border-bottom: 1px solid gray;
       padding-inline-start: 25px;
       color: inherit;
+      padding: 5px 10px 5px 25px;
 
       &:last-child {
         border-bottom: 0;
@@ -78,12 +79,15 @@
         display: flex;
         align-items: center;
         gap: 5px;
+
+        > input {
+          padding: 0 !important;
+        }
       }
     }
 
     > .menu-item[class*=" icon-"], > .menu-item[class^="icon-"] {
       position: relative;
-      padding: 5px 25px;
       display: block;
     }
 
@@ -92,38 +96,46 @@
       text-align: center;
       position: absolute;
       left: 0;
-      top: 50%;
-      transform: translateY(-50%);
+      top: 0.65rem;
     }
 
-    > .track {
-      display: block;
-      padding: 5px;
-      position: relative;
+    > .track-selector {
+      > .track-list {
+        margin: 0 0 5px 10px;
+        border: 1px solid gray;
+        overflow-y: auto;
+        max-height: 50vh;
 
-      > .track-input {
-        display: none;
-      }
+        > .track {
+          display: block;
+          padding: 5px;
+          position: relative;
 
-      > .track-label {
-        display: block;
-        padding: 0 20px;
-        width: 100%;
-        cursor: pointer;
-      }
+          > .track-input {
+            display: none;
+          }
 
-      > .track-label::before {
-        content: "";
-        width: 25px;
-        position: absolute;
-        left: 0;
-        top: 50%;
-        transform: translateY(-50%);
-        text-align: center;
-      }
+          > .track-label {
+            display: block;
+            padding: 0 20px;
+            width: 100%;
+            cursor: pointer;
+          }
 
-      > .track-input:checked + .track-label::before {
-        content: "\e372";
+          > .track-label::before {
+            content: "";
+            width: 25px;
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            text-align: center;
+          }
+
+          > .track-input:checked + .track-label::before {
+            content: "\e372";
+          }
+        }
       }
     }
   }
