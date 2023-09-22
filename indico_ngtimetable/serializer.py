@@ -189,6 +189,7 @@ class NGTimetableSerializer(TimetableSerializer):
                 "title": contribution.title,
                 "description": contribution.description,
                 "duration": contribution.duration_display.seconds // 60,
+                "trackId": contribution.track.id if contribution.track else 0,
                 "url": url_for("contributions.display_contribution", contribution),
                 "timeunit_span": math.ceil(
                     contribution.duration_display.seconds // 60 // self.granularity

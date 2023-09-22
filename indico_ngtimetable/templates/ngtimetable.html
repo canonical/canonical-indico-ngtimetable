@@ -34,7 +34,7 @@
     <{{tagtype}} href="{{entry.url}}" class="contribution {% if entry.subcontributions %}hassubcontributions{% endif %}"
        style="{{grid(timeunit, entry.timeunit_span, room_index)}} {{colors}} z-index: {{zindex}}"
        draggable="{%if management %}true{% else %}false{% endif %}"
-       data-track-id="{{entry.trackId}}"
+       data-track-id="{{entry.trackId|default('')}}"
        {% if management %}
          data-id="{{entry.scheduleEntryId|default('')}}"
          data-contribution-id="{{entry.contributionId}}"
