@@ -327,13 +327,13 @@ function changeTrackCheckbox(event) {
 }
 
 function menuSetup() {
-  document.querySelector(".menu > .menu-content").addEventListener("change", changeTrackCheckbox);
+  document.querySelector(".track-list").addEventListener("change", changeTrackCheckbox);
 
   trackSheet = document.createElement("style");
   trackSheet.id = "trackRules";
   document.head.appendChild(trackSheet);
 
-  const tracks = document.querySelectorAll(".menu-content > .track");
+  const tracks = document.querySelectorAll(".track-list > .track");
   for (const track of tracks) {
     const trackId = track.dataset.trackId;
     const rule = `
