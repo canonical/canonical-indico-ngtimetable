@@ -178,7 +178,6 @@ class NGTimetableSerializer(TimetableSerializer):
             Contribution.query.with_parent(self.event)
             .options(*query_options)
             .filter(~Contribution.is_scheduled)
-            .all()
         )
 
         unscheduled = []
@@ -192,7 +191,7 @@ class NGTimetableSerializer(TimetableSerializer):
                 "trackId": contribution.track.id if contribution.track else 0,
                 "url": url_for("contributions.display_contribution", contribution),
                 "timeunit_span": math.ceil(
-                    contribution.duration_display.seconds // 60 // self.granularity
+                    contribution.duration_display.seconds // 60 / self.granularity
                 ),
                 "location_data": {"room_name": "", "room_id": ""},
                 "abstract_score": (

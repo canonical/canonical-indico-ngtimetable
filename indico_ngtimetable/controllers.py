@@ -60,9 +60,7 @@ class RHNGTimetable(RHTimetableProtectionBase):
         published = contribution_settings.get(self.event, "published")
 
         unscheduled = (
-            serializer.serialize_unscheduled_contributions()
-            if self.__class__.MANAGEMENT
-            else []
+            serializer.serialize_unscheduled_contributions() if self.MANAGEMENT else []
         )
 
         for index, (key, __) in enumerate(
