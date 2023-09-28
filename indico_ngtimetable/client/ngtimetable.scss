@@ -183,13 +183,16 @@
   --clamped-rooms-per-screen: max(1, min(var(--rooms), calc(var(--rooms-per-screen) * var(--density, 1))));
   --clamped-hours-per-screen: max(1, calc(var(--hours-per-screen) * var(--density, 1)));
 
-  display: flex;
   background: white;
+  flex: 1 0 0;
 
 
   > .schedule {
-    flex: 1;
-    display: flex;
+    flex: 1 0 0;
+    display: grid;
+    overflow: auto;
+    overscroll-behavior: none;
+    height: calc(100vh - var(--header-size));
 
     &.dragging {
       scroll-snap-type: none;
@@ -215,6 +218,13 @@
         align-items: center;
         color: black;
         text-decoration: none;
+        position: fixed;
+        width: 40px;
+        height: 40px;
+        left: 0;
+        top: var(--header-size);
+        background: white;
+
 
         &:hover {
           color: #00a4e4;
@@ -341,6 +351,7 @@
 
     > .title {
       font-weight: bold;
+      overflow: hidden;
 
       > .timetable-actions {
         float: right;
@@ -405,10 +416,12 @@
       flex: 1;
       display: grid;
       gap: 2px;
+      min-height: 0;
 
       > .contribution {
         padding: 8px;
         font-size: 0.9em;
+        min-height: 0;
       }
     }
   }
@@ -418,18 +431,15 @@
   --rooms-per-screen: 4;
   --hours-per-screen: 6;
 
-  flex-direction: row;
-  min-height: 70vh;
   column-gap: 2px;
 
   > .schedule {
-    flex-direction: row;
-    overflow-x: auto;
-    scroll-snap-type: x proximity;
+    grid-template-columns: 40px repeat(99, auto);
+    grid-template-rows: calc(100vh - var(--header-size));
 
     > .rooms {
-      grid-template-rows: [empty] 40px repeat(var(--rooms), [room] calc((100vh - var(--header-size) - 40px - 14px) / var(--clamped-rooms-per-screen)));
-      height: calc(var(--rooms) * (100% - 40px - 16px) / var(--clamped-rooms-per-screen));
+      grid-template-rows: repeat(var(--rooms), [room] calc((100vh - var(--header-size) - 40px) / var(--clamped-rooms-per-screen)));
+      height: calc(40px + var(--rooms) * ((100vh - 40px - var(--header-size)) / var(--clamped-rooms-per-screen) + 2px));
       left: 0;
 
       &::before {
@@ -444,6 +454,8 @@
         width: 40px;
         height: 100%;
         border-width: 1px 1px 1px 0;
+        margin-top: 42px;
+
 
         &:first-child {
           border-top-width: 0;
@@ -457,6 +469,7 @@
       border-top-width: 0;
       margin: 0 2px;
       left: 42px;
+      height: calc(40px + var(--rooms) * ((100vh - 40px - var(--header-size)) / var(--clamped-rooms-per-screen) + 2px));
 
       &:first-child {
         margin-left: 0;
@@ -464,8 +477,8 @@
     }
 
     > .timetable {
-      grid-template-rows: [times] 40px repeat(var(--rooms), [room] calc((100vh - var(--header-size) - 40px - 14px) / var(--clamped-rooms-per-screen)));
-      grid-template-columns: repeat(var(--times), [timeunit] minmax(calc((100vw - 40px - 16px) / var(--clamped-hours-per-screen) / var(--units-per-hour) - 2px), 1fr));
+      grid-template-rows: [times] 40px repeat(var(--rooms), [room] calc((100vh - var(--header-size) - 40px) / var(--clamped-rooms-per-screen)));
+      grid-template-columns: repeat(var(--times), [timeunit] minmax(calc((100vw - 40px) / var(--clamped-hours-per-screen) / var(--units-per-hour) - 2px), 1fr));
 
       > .timeslot {
         grid-row: 1;
@@ -499,19 +512,16 @@
   --rooms-per-screen: 6;
   --hours-per-screen: 4;
 
-  flex-direction: column;
-  max-height: 100vh;
   row-gap: 2px;
 
   > .schedule {
-    flex-direction: column;
-    overflow-y: auto;
-    scroll-snap-type: y proximity;
+    grid-template-rows: 40px repeat(99, auto);
+    grid-template-columns: 100vw;
 
     > .rooms {
-      grid-template-columns: [empty] 40px repeat(var(--rooms), [room] calc((100vw - 40px - 16px) / var(--clamped-rooms-per-screen)));
+      grid-template-columns: repeat(var(--rooms), [room] calc((100vw - 40px) / var(--clamped-rooms-per-screen)));
+      width: calc(40px + var(--rooms) * ((100vw - 40px) / var(--clamped-rooms-per-screen) + 2px));
       top: 0;
-      width: calc(40px + (var(--rooms) * (100vw - 40px - 16px) / var(--clamped-rooms-per-screen)));
 
       &::before {
         bottom: -2px;
@@ -524,6 +534,7 @@
         width: 100%;
         height: 40px;
         border-width: 0 1px 1px;
+        margin-inline-start: 42px;
 
         &:last-child {
           border-width: 0 0 1px 1px;
@@ -537,6 +548,7 @@
       margin: 2px 0;
       top: 42px;
       left: 0;
+      width: calc(40px + var(--rooms) * (100vw - 40px) / var(--clamped-rooms-per-screen));
 
       &:first-child {
         margin-top: 0;
@@ -544,14 +556,24 @@
     }
 
     > .timetable {
-      grid-template-columns: [times] 40px repeat(var(--rooms), [room] calc((100vw - 40px - 16px) / var(--clamped-rooms-per-screen)));
-      grid-template-rows: repeat(var(--times), [timeunit] minmax(calc((100vh - 40px - 16px) / var(--clamped-hours-per-screen) / var(--units-per-hour) - 2px), 1fr));
+      grid-template-columns: [times] 40px repeat(var(--rooms), [room] calc((100vw - 40px) / var(--clamped-rooms-per-screen)));
+      grid-template-rows: repeat(var(--times), [timeunit] minmax(calc((100vh - 40px) / var(--clamped-hours-per-screen) / var(--units-per-hour) - 2px), 1fr));
 
       > .timeslot {
         grid-column: 1;
         grid-row: span var(--units-per-hour);
         writing-mode: vertical-rl;
         left: 0;
+
+        &::before {
+          content: "";
+          position: absolute;
+          top: -3px;
+          left: -1px;
+          height: calc(100% + 4px);
+          border-top: 2px solid white;
+          width: calc(100% + 2px);
+        }
       }
 
       > .break > .title {
@@ -683,5 +705,16 @@
 
   .ngtimetable.vertical {
     --hours-per-screen: 1;
+  }
+}
+
+/* Scroll snapping only on small screens */
+@media only screen and (max-width: 550px), only screen and (max-height: 550px) {
+  .ngtimetable.horizontal > .schedule {
+    scroll-snap-type: x proximity;
+  }
+
+  .ngtimetable.vertical > .schedule {
+    scroll-snap-type: y proximity;
   }
 }
