@@ -61,7 +61,12 @@
          onclick='window.open("{{entry.url}}", "_blank")'
        {% endif %}
        target="_blank">
-      <span class="title">{{entry.title}}</span>
+       <span class="title">
+         <div class="timetable-actions">
+           {{template_hook('vc-actions', event=event, item=entry._obj)}}
+         </div>
+         {{entry.title}}
+       </span>
       {% if entry.subcontributions %}
         <div class="subcontributions">
           {% for subcontrib in entry.subcontributions %}

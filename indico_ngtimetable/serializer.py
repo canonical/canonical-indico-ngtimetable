@@ -211,6 +211,7 @@ class NGTimetableSerializer(TimetableSerializer):
                         ),
                     )
                 ),
+                "_obj": contribution,
             }
             data["subcontributions"] = [
                 self.serialize_subcontribution(x) for x in contribution.subcontributions
@@ -296,6 +297,8 @@ class NGTimetableSerializer(TimetableSerializer):
                 "location_data"
             ]
 
+        data["_obj"] = entry.session_block
+
         self._in_session_block = False
         return data
 
@@ -330,6 +333,8 @@ class NGTimetableSerializer(TimetableSerializer):
             for x in entry.contribution.subcontributions
         ]
 
+        data["_obj"] = entry.contribution
+
         return data
 
     def serialize_subcontribution(self, subcontribution):
@@ -340,6 +345,7 @@ class NGTimetableSerializer(TimetableSerializer):
             "title": subcontribution.title,
             "description": subcontribution.description,
             "url": url_for("contributions.display_subcontribution", subcontribution),
+            "_obj": subcontribution,
         }
 
     def serialize_break_entry(self, entry, management=False):
