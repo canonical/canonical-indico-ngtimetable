@@ -29,3 +29,6 @@ class WPNGTimetable(WPJinjaMixinPlugin, WPConferenceDisplayBase):
             published=self.published,
             **params
         )
+
+    def _get_footer(self):
+        return ""
