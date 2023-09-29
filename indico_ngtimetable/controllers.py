@@ -64,7 +64,11 @@ class RHNGTimetable(RHTimetableProtectionBase):
         )
 
         for index, (key, __) in enumerate(
-            sorted(serializer.room_map.items(), key=lambda item: item[1]["capacity"])
+            sorted(
+                serializer.room_map.items(),
+                key=lambda item: item[1]["capacity"],
+                reverse=True,
+            )
         ):
             serializer.room_map[key]["index"] = index + 1
 
