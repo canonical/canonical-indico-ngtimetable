@@ -15,7 +15,7 @@ jobs:
       - name: Clone indico
         run: |
           git clone https://github.com/indico/indico.git indico-src \
-              --depth 1 --branch master
+              --depth 1 --branch 3.2.x
 
       - name: Setup Node
         uses: actions/setup-node@v3
