@@ -192,6 +192,7 @@
               {% endfor %}
             </div>
           </div>
+          {{template_hook('ngtimetable-menu', event=event)}}
           <a class="menu-item change-orientation icon-loop" href="?orientation={{otherorientation}}">{% trans %}Change orientation{% endtrans %}</a>
           <div class="menu-item density-item">
             <label for="density">{% trans %}Zoom{% endtrans %}</label>
