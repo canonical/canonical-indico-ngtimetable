@@ -24,6 +24,12 @@ jobs:
           cache: npm
           cache-dependency-path: indico-src/package-lock.json
 
+      - name: Setup apt packages
+        run: |
+          sudo apt install -y --install-recommends libxslt1-dev libxml2-dev libffi-dev libpcre3-dev \
+          libyaml-dev build-essential libpq-dev libpango1.0-dev
+          sudo apt install -y libjpeg-turbo8-dev zlib1g-dev
+
       - name: npm ci plugin
         working-directory: ./plugin
         run: npm ci
