@@ -142,12 +142,12 @@ class RNHGTimetableOperationsBase(RHManageEventBase):
         }
 
         if self.targetSessionTimetableEntry:
-            self.contrib_updates[
-                "session"
-            ] = self.targetSessionTimetableEntry.session_block.session
-            self.contrib_updates[
-                "session_block"
-            ] = self.targetSessionTimetableEntry.session_block
+            self.contrib_updates["session"] = (
+                self.targetSessionTimetableEntry.session_block.session
+            )
+            self.contrib_updates["session_block"] = (
+                self.targetSessionTimetableEntry.session_block
+            )
 
 
 class RHNGTimetableMove(RNHGTimetableOperationsBase):
@@ -236,9 +236,11 @@ class RHNGTimetableMove(RNHGTimetableOperationsBase):
                     {
                         "location_data": self.entry.contribution.location_data,
                         "session_block": self.entry.session_block,
-                        "session": self.entry.session_block.session
-                        if self.entry.session_block
-                        else None,
+                        "session": (
+                            self.entry.session_block.session
+                            if self.entry.session_block
+                            else None
+                        ),
                     },
                 )
 
